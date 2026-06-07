@@ -65,12 +65,12 @@ export default function LoginScreen() {
         ]}
         keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
+          {/* Logo already contains the "MyKhata Book" wordmark — no separate title. */}
           <Image
             source={require('@/assets/images/icon.png')}
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.title, { color: c.text }]}>MyKhata Book</Text>
           <Text style={[styles.subtitle, { color: c.textSecondary }]}>
             Your money, beautifully tracked.
           </Text>

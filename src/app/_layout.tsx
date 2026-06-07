@@ -10,12 +10,20 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
 import { AnimatedSplash } from '@/components/animated-splash';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { CurrentBookProvider } from '@/lib/current-book';
 import { ProfileProvider } from '@/lib/profile';
 import { ThemeProvider, useThemeMode } from '@/lib/theme-context';
 import { ToastProvider } from '@/components/ui/toast';
+
+// Configure native Google Sign-In once at startup.
+GoogleSignin.configure({
+  webClientId: '347674671377-dmplub1aad10gr3hclbdf26p97o7cna4.apps.googleusercontent.com',
+  offlineAccess: true,
+});
 
 export default function RootLayout() {
   const [splashDone, setSplashDone] = useState(false);

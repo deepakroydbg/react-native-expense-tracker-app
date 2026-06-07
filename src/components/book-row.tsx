@@ -25,6 +25,9 @@ export function BookRow({
   const c = useTheme();
   const positive = book.balance >= 0;
   const [menuOpen, setMenuOpen] = useState(false);
+  // Shrink large balances so they never truncate (e.g. ₹55,55,474).
+  const balanceDigits = String(Math.round(Math.abs(book.balance))).length;
+  const balanceFont = balanceDigits > 6 ? 12 : 16;
 
   const scale = useRef(new Animated.Value(1)).current;
   const flash = useRef(new Animated.Value(0)).current;
@@ -67,17 +70,19 @@ export function BookRow({
             <Ionicons name="book" size={22} color="#fff" />
           </View>
           <View style={styles.middle}>
-            <Text style={[styles.name, { color: c.text }]} numberOfLines={1}>
+            <Text style={[styles.name, { color: c.text }]} numberOfLines={1} ellipsizeMode="tail">
               {book.name}
             </Text>
-            <Text style={[styles.updated, { color: c.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.updated, { color: c.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
               Updated on {shortDate(book.updated_at)}
             </Text>
           </View>
           <View style={styles.rightArea}>
             <Text
-              style={[styles.balance, { color: positive ? c.success : c.danger }]}
-              numberOfLines={1}>
+              style={[styles.balance, { color: positive ? c.success : c.danger, fontSize: balanceFont }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}>
               {positive ? '' : '-'}
               {formatCurrency(Math.abs(book.balance))}
             </Text>
@@ -124,15 +129,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   middle: { flex: 1, gap: 2 },
-  name: { fontSize: 16, fontWeight: '700' },
+  name: { fontSize: 15, fontWeight: '600' },
   updated: { fontSize: 12 },
   rightArea: {
-    width: 96,
+    maxWidth: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 2,
   },
-  balance: { flexShrink: 1, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  balance: { flexShrink: 1, fontWeight: '800', textAlign: 'right' },
   menuBtn: { paddingLeft: 2, paddingVertical: 4 },
 });

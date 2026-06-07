@@ -136,15 +136,15 @@ export default function SettingsScreen() {
       <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>YOUR PROFILE</Text>
       <Pressable
         onPress={() => setEditOpen(true)}
-        style={({ pressed }) => [styles.card, styles.row, { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
-        <Ionicons name="person-outline" size={20} color={c.textSecondary} />
-        <Text style={[styles.rowLabel, { color: c.text }]} numberOfLines={1}>{fullName}</Text>
+        style={({ pressed }) => [styles.navCard, { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
+        <Ionicons name="person-outline" size={22} color={c.textSecondary} />
+        <Text style={[styles.navLabel, { color: c.text }]} numberOfLines={1}>{fullName}</Text>
         <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
       </Pressable>
 
-      {/* ABOUT */}
-      <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>ABOUT MYKHATA BOOK</Text>
-      <Accordion title="About MyKhata Book" icon="information-circle-outline">
+      {/* MYKHATA BOOK APP */}
+      <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>MYKHATA BOOK APP</Text>
+      <Accordion title="MyKhata Book App" icon="information-circle-outline">
         <NavRow label="About MyKhata Book" onPress={() => router.push('/about')} />
         <InfoRow label="App Version" value={version} />
         <NavRow label="Privacy Policy" onPress={() => router.push('/privacy')} />
@@ -198,6 +198,16 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 16 },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
   card: { borderRadius: 14, borderWidth: 1, padding: 14 },
+  navCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+  },
+  navLabel: { flex: 1, fontSize: 15, fontWeight: '700' },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',

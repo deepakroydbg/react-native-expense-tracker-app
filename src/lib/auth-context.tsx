@@ -1,13 +1,8 @@
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import type { Session } from '@supabase/supabase-js';
-import { makeRedirectUri } from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { createSessionFromUrl } from '@/lib/oauth';
 import { supabase } from '@/lib/supabase';
-
-// Dismisses the auth browser popup automatically when the redirect comes back.
-WebBrowser.maybeCompleteAuthSession();
 
 type AuthResult = { error: string | null; needsConfirmation?: boolean };
 
@@ -94,36 +89,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle: AuthContextValue['signInWithGoogle'] = async () => {
     try {
-      const redirectTo = makeRedirectUri({ scheme: 'mykhata', path: 'auth/callback' });
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response: any = await GoogleSignin.signIn();
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // v13+ returns { type: 'cancelled' } on cancel.
+      if (response?.type === 'cancelled') return { error: null };
+
+      const idToken = response?.data?.idToken ?? response?.idToken;
+      if (!idToken) return { error: 'Could not get Google credentials. Please try again.' };
+
+      const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-          // Force the Google account chooser instead of an email/password form.
-          queryParams: { prompt: 'select_account' },
-        },
+        token: idToken,
       });
       if (error) return { error: friendlyError(error.message) };
-      if (!data?.url) return { error: 'Could not start Google sign-in. Please try again.' };
-
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-
-      if (result.type === 'cancel' || result.type === 'dismiss') {
-        return { error: 'Google sign-in was cancelled.' };
-      }
-      if (result.type === 'success' && result.url) {
-        // The custom tab returned the redirect — finish the session inline.
-        const { error: sessErr } = await createSessionFromUrl(result.url);
-        if (sessErr && sessErr !== 'no-session') return { error: friendlyError(sessErr) };
-        return { error: null };
-      }
-      // Otherwise the OS deep-linked the app to /auth/callback, which finishes it.
+      // onAuthStateChange picks up the session and the root navigator redirects.
       return { error: null };
     } catch (e: any) {
-      console.error('[signInWithGoogle]', e);
-      return { error: friendlyError(String(e?.message ?? '')) };
+      const code = e?.code;
+      if (code === statusCodes.SIGN_IN_CANCELLED || code === statusCodes.IN_PROGRESS) {
+        return { error: null }; // user cancelled / already in progress — no-op
+      }
+      if (code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        return { error: 'Google Play Services not available or outdated.' };
+      }
+      console.error('Google sign in error:', e);
+      return { error: 'Could not sign in with Google. Please try again.' };
     }
   };
 

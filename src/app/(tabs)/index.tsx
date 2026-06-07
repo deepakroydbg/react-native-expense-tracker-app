@@ -6,6 +6,7 @@ import {
   Alert,
   AppState,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -34,7 +35,7 @@ export default function BooksScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setCurrentBook } = useCurrentBook();
-  const { avatarUrl, fullName, initials } = useProfile();
+  const { avatarUrl, initials } = useProfile();
 
   const [books, setBooks] = useState<BookWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +62,6 @@ export default function BooksScreen() {
     });
     return () => sub.remove();
   }, []);
-
-  const userLabel = fullName;
 
   const load = useCallback(async () => {
     try {
@@ -134,19 +133,16 @@ export default function BooksScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
-      {/* Top header */}
+      {/* Top header: left = brand (→ About), right = profile photo (→ Profile sheet) */}
       <View style={styles.topHeader}>
-        <Pressable style={styles.account} hitSlop={6} onPress={() => setProfileOpen(true)}>
-          <Avatar size={36} url={avatarUrl} initials={initials} />
-          <Text style={[styles.accountName, { color: c.text }]} numberOfLines={1}>
-            {userLabel}
+        <Pressable style={styles.account} hitSlop={6} onPress={() => router.push('/about')}>
+          <Image source={require('@/assets/images/icon.png')} style={styles.brandLogo} resizeMode="contain" />
+          <Text style={styles.brandName} numberOfLines={1}>
+            MyKhata Book
           </Text>
         </Pressable>
-        <Pressable
-          hitSlop={8}
-          onPress={() => setProfileOpen(true)}
-          style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}>
-          <Ionicons name="person-circle-outline" size={22} color={c.text} />
+        <Pressable hitSlop={8} onPress={() => setProfileOpen(true)} style={styles.avatarBtn}>
+          <Avatar size={38} url={avatarUrl} initials={initials} />
         </Pressable>
       </View>
 
@@ -267,22 +263,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
   },
-  account: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  accountIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  accountName: { fontSize: 16, fontWeight: '800', flexShrink: 1 },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  account: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  brandLogo: { width: 36, height: 36, borderRadius: 10 },
+  brandName: { fontSize: 17, fontWeight: '700', color: '#1e3a5f', flexShrink: 1 },
+  avatarBtn: {
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   sectionRow: {
     flexDirection: 'row',
