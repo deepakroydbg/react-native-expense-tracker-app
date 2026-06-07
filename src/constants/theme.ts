@@ -3,28 +3,51 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import '@/global.css';
-
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#11181C',
+    background: '#F5F6F8',
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: '#E6F0FF',
+    textSecondary: '#5C6670',
+    card: '#FFFFFF',
+    border: '#E4E7EB',
+    inputBackground: '#FFFFFF',
+    primary: '#2563EB',
+    onPrimary: '#FFFFFF',
+    success: '#10B981',
+    successSoft: '#E7F8F1',
+    danger: '#EF4444',
+    dangerSoft: '#FDECEC',
+    warning: '#F59E0B',
+    overlay: 'rgba(0,0,0,0.45)',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#ECEDEE',
+    background: '#0B0F14',
+    backgroundElement: '#161B22',
+    backgroundSelected: '#1E2A3C',
+    textSecondary: '#9BA4AE',
+    card: '#161B22',
+    border: '#252C36',
+    inputBackground: '#1C232C',
+    primary: '#3B82F6',
+    onPrimary: '#FFFFFF',
+    success: '#34D399',
+    successSoft: '#10241D',
+    danger: '#F87171',
+    dangerSoft: '#2A1717',
+    warning: '#FBBF24',
+    overlay: 'rgba(0,0,0,0.6)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+/** A resolved color palette (same keys, plain strings). */
+export type Palette = { [K in ThemeColor]: string };
 
 export const Fonts = Platform.select({
   ios: {
