@@ -44,6 +44,7 @@ export function InsightsDonut({
   const cx = SIZE / 2;
   const cy = SIZE / 2;
   const circ = 2 * Math.PI * RADIUS;
+  const GAP_PX = (circ * 3) / 360; // 3° total gap (1.5° each side) between segments
   const sum = data.reduce((s, d) => s + (d.value > 0 ? d.value : 0), 0);
 
   let acc = 0;
@@ -81,9 +82,14 @@ export function InsightsDonut({
         <G rotation={-90} origin={`${cx}, ${cy}`}>
           {segs.length === 0 ? (
             <Circle cx={cx} cy={cy} r={RADIUS} stroke={c.backgroundElement} strokeWidth={STROKE} fill="none" />
+          ) : segs.length === 1 ? (
+            // A single category fills the whole ring — no gap needed.
+            <Circle cx={cx} cy={cy} r={RADIUS} stroke={segs[0].color} strokeWidth={STROKE} fill="none" />
           ) : (
             segs.map((s) => {
+              // Smooth, separated segments: trim a 3° gap (1.5° each side) and round the ends.
               const len = s.frac * circ;
+              const visibleLen = Math.max(len - GAP_PX, 0.001);
               const sw = selected === s.name ? STROKE_SELECTED : STROKE;
               return (
                 <Circle
@@ -94,8 +100,9 @@ export function InsightsDonut({
                   stroke={s.color}
                   strokeWidth={sw}
                   fill="none"
-                  strokeDasharray={`${len} ${circ - len}`}
-                  strokeDashoffset={-s.startFrac * circ}
+                  strokeLinecap="round"
+                  strokeDasharray={`${visibleLen} ${circ - visibleLen}`}
+                  strokeDashoffset={-(s.startFrac * circ + GAP_PX / 2)}
                 />
               );
             })

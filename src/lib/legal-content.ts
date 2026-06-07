@@ -27,7 +27,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
       heading: '6. Contact Us',
-      body: 'For any privacy concerns, contact us at: support@mykhatabook.com',
+      body: 'For any privacy concerns, contact us at: mykhatabook.support@gmail.com',
     },
     {
       heading: '7. Changes to This Policy',
@@ -54,7 +54,7 @@ export const ABOUT_DOC: LegalDoc = {
     },
     {
       heading: 'Contact',
-      body: 'Questions, feedback, or support: support@mykhatabook.com',
+      body: 'Questions, feedback, or support: mykhatabook.support@gmail.com',
     },
   ],
 };
@@ -89,7 +89,7 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     },
     {
       heading: '7. Contact',
-      body: 'Questions about these terms: support@mykhatabook.com',
+      body: 'Questions about these terms: mykhatabook.support@gmail.com',
     },
   ],
 };

@@ -19,7 +19,7 @@
         "backgroundColor": "#f5f0e8"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
@@ -39,7 +39,7 @@
           ]
         }
       ],
-      "versionCode": 2
+      "versionCode": 4
     },
     "web": {
       "output": "static",

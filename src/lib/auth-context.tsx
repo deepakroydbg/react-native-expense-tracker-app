@@ -4,15 +4,12 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabase';
 
-type AuthResult = { error: string | null; needsConfirmation?: boolean };
+type AuthResult = { error: string | null };
 
 type AuthContextValue = {
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<AuthResult>;
-  signIn: (email: string, password: string) => Promise<AuthResult>;
   signInWithGoogle: () => Promise<AuthResult>;
-  resetPassword: (email: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 
@@ -23,21 +20,6 @@ function friendlyError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes('network') || m.includes('fetch') || m.includes('failed to fetch')) {
     return 'No internet connection. Please check your network and try again.';
-  }
-  if (m.includes('invalid login credentials')) {
-    return 'Incorrect email or password. Please try again.';
-  }
-  if (m.includes('email not confirmed')) {
-    return 'Please check your email and click the confirmation link, or contact support.';
-  }
-  if (m.includes('user already registered') || m.includes('already been registered')) {
-    return 'An account with this email already exists. Try signing in instead.';
-  }
-  if (m.includes('password should be at least')) {
-    return 'Password is too short. Use at least 6 characters.';
-  }
-  if (m.includes('unable to validate email') || m.includes('invalid email')) {
-    return 'That email address looks invalid.';
   }
   if (m.includes('rate limit') || m.includes('too many')) {
     return 'Too many attempts. Please wait a moment and try again.';
@@ -62,30 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => sub.subscription.unsubscribe();
   }, []);
-
-  const signUp: AuthContextValue['signUp'] = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      // If email confirmation IS enabled, the link opens the app instead of localhost.
-      // For development, confirmation is turned OFF in the Supabase dashboard
-      // (Authentication → Providers → Email → "Confirm email") — re-enable before production.
-      options: { emailRedirectTo: 'mykhata://auth/callback' },
-    });
-    if (error) return { error: friendlyError(error.message) };
-    // If email confirmation is required, there's no active session yet.
-    const needsConfirmation = !data.session;
-    return { error: null, needsConfirmation };
-  };
-
-  const signIn: AuthContextValue['signIn'] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    if (error) return { error: friendlyError(error.message) };
-    return { error: null };
-  };
 
   const signInWithGoogle: AuthContextValue['signInWithGoogle'] = async () => {
     try {
@@ -118,21 +76,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const resetPassword: AuthContextValue['resetPassword'] = async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: 'mykhata://auth/callback',
-    });
-    if (error) return { error: friendlyError(error.message) };
-    return { error: null };
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider
-      value={{ session, loading, signUp, signIn, signInWithGoogle, resetPassword, signOut }}>
+    <AuthContext.Provider value={{ session, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

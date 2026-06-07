@@ -51,9 +51,9 @@ export default function SettingsScreen() {
   };
 
   const mailTo = (subject: string) =>
-    Linking.openURL(`mailto:support@mykhatabook.com?subject=${encodeURIComponent(subject)}`).catch(
-      () => Alert.alert('No email app', 'Could not open your email app.')
-    );
+    Linking.openURL(
+      `mailto:mykhatabook.support@gmail.com?subject=${encodeURIComponent(subject)}`
+    ).catch(() => Alert.alert('No email app', 'Could not open your email app.'));
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
@@ -128,8 +128,8 @@ export default function SettingsScreen() {
       <Text style={[styles.sectionLabel, { color: c.textSecondary }]}>HELP & SUPPORT</Text>
       <Accordion title="Help & Support" icon="help-buoy-outline">
         <NavRow label="FAQ" onPress={() => router.push('/faq')} />
-        <NavRow label="Contact Us" onPress={() => mailTo('MyKhata Book — Support')} />
-        <NavRow label="Report a Bug" onPress={() => mailTo('MyKhata Book — Bug Report')} last />
+        <NavRow label="Contact Us" onPress={() => mailTo('Support - MyKhata Book')} />
+        <NavRow label="Report a Bug" onPress={() => mailTo('Bug Report - MyKhata Book')} last />
       </Accordion>
 
       {/* YOUR PROFILE */}
