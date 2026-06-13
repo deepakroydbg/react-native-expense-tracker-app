@@ -34,7 +34,13 @@ export default function LoginScreen() {
         styles.screen,
         { backgroundColor: c.background, paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}>
-      <Text style={[styles.welcome, { color: headingColor }]}>Welcome to MyKhata Book</Text>
+      <Text
+        style={[styles.welcome, { color: headingColor }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}>
+        Welcome to MyKhata Book
+      </Text>
 
       <Image source={require('@/assets/images/icon.png')} style={styles.logo} resizeMode="contain" />
 
@@ -62,7 +68,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   welcome: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 24,

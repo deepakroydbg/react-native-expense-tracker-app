@@ -5,11 +5,11 @@
     "owner": "deepakroydbg",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "mykhata",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/app-icon.png"
     },
     "android": {
       "package": "com.mykhata.book",
