@@ -57,7 +57,7 @@ export function EntryCard({
               {tx.note}
             </Text>
           ) : (
-            <Text style={[styles.note, { color: c.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.note, { color: c.text }]} numberOfLines={1}>
               {tx.category || 'Other'}
             </Text>
           )}

@@ -104,6 +104,12 @@ export function shortDate(value: string | Date): string {
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/** "14 Jul" — day + month, no year. */
+export function dayMonth(value: string | Date): string {
+  const date = typeof value === 'string' ? new Date(value) : value;
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',

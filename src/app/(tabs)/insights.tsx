@@ -20,7 +20,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { listBooks, type BookWithBalance } from '@/lib/books';
 import { getCategory } from '@/lib/categories';
 import { useCurrentBook } from '@/lib/current-book';
-import { formatCurrency, formatSigned, fromISODate, shortDate } from '@/lib/format';
+import { dayMonth, formatCurrency, formatSigned, fromISODate } from '@/lib/format';
 import { listByBook, summarize, type Transaction } from '@/lib/transactions';
 
 type Mode = 'credit' | 'debit';
@@ -141,69 +141,48 @@ function InsightsContent() {
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [txs, selectedCat, mode]);
 
-  return (
-    <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
-      {/* FIXED top: title, chips, toggle, donut, detail card */}
-      <View style={styles.fixedTop}>
-        <Text style={[styles.title, { color: c.text }]}>Insights</Text>
+  // Shared header pieces (title + book bar) — these scroll away above the sticky toggle.
+  const header = <Text style={[styles.title, styles.hPad, { color: c.text }]}>Insights</Text>;
 
-        {books.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-            {books.map((b) => {
-              const active = b.id === selectedId;
-              return (
-                <Pressable
-                  key={b.id}
-                  onPress={() => setCurrentBook({ id: b.id, name: b.name })}
-                  style={[
-                    styles.chip,
-                    active
-                      ? { backgroundColor: c.primary, borderColor: c.primary, transform: [{ scale: 1.05 }], ...chipShadow }
-                      : { backgroundColor: c.card, borderColor: c.border },
-                  ]}>
-                  <Text style={{ color: active ? c.onPrimary : c.text, fontWeight: '600', fontSize: 13 }}>{b.name}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null}
+  const bookChips =
+    books.length > 0 ? (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {books.map((b) => {
+          const active = b.id === selectedId;
+          return (
+            <Pressable
+              key={b.id}
+              onPress={() => setCurrentBook({ id: b.id, name: b.name })}
+              style={[
+                styles.chip,
+                active
+                  ? { backgroundColor: c.primary, borderColor: c.primary, transform: [{ scale: 1.05 }], ...chipShadow }
+                  : { backgroundColor: c.card, borderColor: c.border },
+              ]}>
+              <Text style={{ color: active ? c.onPrimary : c.text, fontWeight: '600', fontSize: 13 }}>{b.name}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    ) : null;
 
-        {!loading && hasData && selectedId ? (
-          <>
-            <ModeToggle mode={mode} onChange={setMode} />
-            <Animated.View style={{ opacity: fade }}>
-              <InsightsDonut
-                data={categoryData.map((r) => ({ name: r.name, value: r.amount, color: r.color }))}
-                total={centerAmount}
-                centerLabel={centerLabel}
-                centerAmount={centerAmount}
-                centerColor={accent}
-                selected={selectedCat}
-                onSelect={setSelectedCat}
-              />
-            </Animated.View>
-            {selectedRow ? (
-              <DetailCard
-                key={selectedRow.name}
-                name={selectedRow.name}
-                color={selectedRow.color}
-                amount={selectedRow.amount}
-                amountColor={accent}
-                pct={pctLabel(selectedRow.amount, centerAmount)}
-                entries={selectedEntries}
-                onClose={() => setSelectedCat(null)}
-              />
-            ) : null}
-          </>
-        ) : null}
-      </View>
-
-      {/* SCROLLABLE bottom */}
-      {loading ? (
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+        {header}
+        {bookChips}
         <View style={styles.center}>
           <ActivityIndicator size="large" color={c.primary} />
         </View>
-      ) : !selectedId || !hasData ? (
+      </View>
+    );
+  }
+
+  if (!selectedId || !hasData) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+        {header}
+        {bookChips}
         <View style={styles.emptyWrap}>
           <View style={[styles.emptyCircle, { borderColor: c.backgroundElement }]}>
             <Ionicons name="pie-chart-outline" size={44} color={c.textSecondary} />
@@ -212,8 +191,54 @@ function InsightsContent() {
             {books.length === 0 ? 'Create a book and add entries to see insights' : 'Add entries to see insights'}
           </Text>
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+      <ScrollView
+        stickyHeaderIndices={[2]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
+        {/* 0: title, 1: book bar — both scroll away */}
+        {header}
+        {bookChips ?? <View />}
+
+        {/* 2: STICKY — Cash In / Cash Out toggle sticks to the top while scrolling */}
+        <View style={[styles.stickyToggle, { backgroundColor: c.background }]}>
+          <ModeToggle mode={mode} onChange={setMode} />
+        </View>
+
+        {/* Everything below scrolls under the sticky toggle */}
+        <Animated.View style={[styles.hPad, { opacity: fade }]}>
+          <InsightsDonut
+            data={categoryData.map((r) => ({ name: r.name, value: r.amount, color: r.color }))}
+            total={centerAmount}
+            centerLabel={centerLabel}
+            centerAmount={centerAmount}
+            centerColor={accent}
+            selected={selectedCat}
+            onSelect={setSelectedCat}
+          />
+        </Animated.View>
+
+        {selectedRow ? (
+          <View style={styles.hPad}>
+            <DetailCard
+              key={selectedRow.name}
+              name={selectedRow.name}
+              color={selectedRow.color}
+              amount={selectedRow.amount}
+              amountColor={accent}
+              pct={pctLabel(selectedRow.amount, centerAmount)}
+              entries={selectedEntries}
+              onClose={() => setSelectedCat(null)}
+            />
+          </View>
+        ) : null}
+
+        <View style={[styles.hPad, styles.categorySection]}>
           <Text style={[styles.sectionTitle, { color: c.text }]}>By category</Text>
           {categoryData.length === 0 ? (
             <Text style={[styles.emptyText, { color: c.textSecondary, marginTop: 4 }]}>
@@ -256,8 +281,8 @@ function InsightsContent() {
             </View>
           </View>
           <NetCard net={totals.net} />
-        </ScrollView>
-      )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -312,7 +337,10 @@ function DetailCard({
       <View style={[styles.detailDivider, { backgroundColor: c.border }]} />
       {shown.map((t) => (
         <View key={t.id} style={styles.detailRow}>
-          <Text style={[styles.detailDate, { color: c.textSecondary }]}>{shortDate(fromISODate(t.entry_date))}</Text>
+          <Text style={[styles.detailDate, { color: c.textSecondary }]}>{dayMonth(fromISODate(t.entry_date))}</Text>
+          <Text style={[styles.detailNote, { color: c.text }]} numberOfLines={1}>
+            {t.note?.trim() ? t.note : '—'}
+          </Text>
           <Text style={[styles.detailRowAmt, { color: t.type === 'credit' ? '#16a34a' : '#dc2626' }]}>
             {formatSigned(Number(t.amount), t.type)}
           </Text>
@@ -387,14 +415,15 @@ const cardShadow = {
 };
 
 const styles = StyleSheet.create({
-  fixedTop: { paddingHorizontal: 20 },
+  hPad: { paddingHorizontal: 20 },
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 12 },
-  chips: { gap: 8, paddingVertical: 4, paddingRight: 8, paddingLeft: 2 },
+  chips: { gap: 8, paddingVertical: 4, paddingRight: 8, paddingLeft: 20 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 30 },
   emptyCircle: { width: 140, height: 140, borderRadius: 70, borderWidth: 18, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 14, textAlign: 'center' },
+  stickyToggle: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 8 },
   modeToggle: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
@@ -411,7 +440,8 @@ const styles = StyleSheet.create({
   },
   modePill: { position: 'absolute', left: 3, top: 3, height: 34, borderRadius: 10, backgroundColor: '#2563eb' },
   modeHalf: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+  scrollContent: { paddingBottom: 40 },
+  categorySection: { paddingTop: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '800', marginBottom: 12 },
   catRow: {
     flexDirection: 'row',
@@ -433,8 +463,9 @@ const styles = StyleSheet.create({
   detailMeta: { fontSize: 12, marginTop: 2 },
   detailAmount: { fontSize: 17, fontWeight: '800' },
   detailDivider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
-  detailDate: { fontSize: 13 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
+  detailDate: { fontSize: 13, width: 52 },
+  detailNote: { flex: 1, fontSize: 13, fontWeight: '600' },
   detailRowAmt: { fontSize: 13, fontWeight: '700' },
   detailMore: { fontSize: 12, marginTop: 6, fontStyle: 'italic' },
   cardsRow: { flexDirection: 'row', gap: 12, marginTop: 18 },

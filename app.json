@@ -68,7 +68,13 @@
           "cameraPermission": "MyKhata Book uses your camera so you can take a profile picture."
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "color": "#f5f0e8"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

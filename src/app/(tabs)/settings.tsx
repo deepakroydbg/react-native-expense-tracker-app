@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/avatar';
@@ -12,10 +12,24 @@ import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
+import { formatTime } from '@/lib/format';
 import { useProfile } from '@/lib/profile';
+import {
+  DEFAULT_REMINDER_TIME,
+  disableReminder,
+  enableReminder,
+  getReminderState,
+  updateReminderTime,
+  type ReminderTime,
+} from '@/lib/reminders';
 import { useThemeMode, type ThemeMode } from '@/lib/theme-context';
 
-const NOTIF_KEY = 'mykhata.daily-reminder';
+function timeToDate(t: ReminderTime): Date {
+  const d = new Date();
+  d.setHours(t.hour, t.minute, 0, 0);
+  return d;
+}
+
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: 'light', label: 'Light', icon: 'sunny' },
   { value: 'dark', label: 'Dark', icon: 'moon' },
@@ -32,15 +46,46 @@ export default function SettingsScreen() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [reminder, setReminder] = useState(false);
+  const [reminderTime, setReminderTime] = useState<ReminderTime>(DEFAULT_REMINDER_TIME);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   useEffect(() => {
-    AsyncStorage.getItem(NOTIF_KEY).then((v) => setReminder(v === 'true')).catch(() => {});
+    getReminderState()
+      .then(({ enabled, time }) => {
+        setReminder(enabled);
+        setReminderTime(time);
+      })
+      .catch(() => {});
   }, []);
 
-  const toggleReminder = (v: boolean) => {
-    setReminder(v);
-    AsyncStorage.setItem(NOTIF_KEY, v ? 'true' : 'false').catch(() => {});
+  const toggleReminder = async (v: boolean) => {
+    setReminder(v); // optimistic
+    try {
+      if (v) {
+        const ok = await enableReminder(reminderTime);
+        if (!ok) {
+          setReminder(false);
+          Alert.alert(
+            'Notifications off',
+            'Please allow notifications for MyKhata Book in your device settings to receive daily reminders.'
+          );
+        }
+      } else {
+        await disableReminder();
+      }
+    } catch {
+      setReminder(false);
+      Alert.alert('Reminder unavailable', 'Could not set up the daily reminder on this device.');
+    }
+  };
+
+  const onPickTime = (selected?: Date) => {
+    if (Platform.OS !== 'ios') setShowTimePicker(false);
+    if (!selected) return;
+    const next: ReminderTime = { hour: selected.getHours(), minute: selected.getMinutes() };
+    setReminderTime(next);
+    updateReminderTime(next).catch(() => {});
   };
 
   const onLogout = () => {
@@ -91,6 +136,28 @@ export default function SettingsScreen() {
             thumbColor="#fff"
           />
         </View>
+        {reminder && (
+          <Pressable
+            onPress={() => setShowTimePicker(true)}
+            style={({ pressed }) => [styles.reminderTimeRow, pressed && { opacity: 0.6 }]}>
+            <Ionicons name="time-outline" size={18} color={c.textSecondary} />
+            <Text style={[styles.reminderTimeLabel, { color: c.textSecondary }]}>Remind me at</Text>
+            <View style={[styles.timePill, { backgroundColor: c.backgroundElement }]}>
+              <Text style={[styles.timePillText, { color: c.text }]}>{formatTime(timeToDate(reminderTime))}</Text>
+            </View>
+          </Pressable>
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={timeToDate(reminderTime)}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(e, selected) => onPickTime(e.type === 'set' ? selected : undefined)}
+          />
+        )}
+        {Platform.OS === 'ios' && showTimePicker ? (
+          <Button title="Done" onPress={() => setShowTimePicker(false)} />
+        ) : null}
         <View style={[styles.rowDivider, { backgroundColor: c.border }]} />
         <View style={[styles.row, { alignItems: 'flex-start' }]}>
           <Ionicons name="moon-outline" size={20} color={c.textSecondary} style={{ marginTop: 6 }} />
@@ -226,6 +293,10 @@ const styles = StyleSheet.create({
   email: { fontSize: 14, marginTop: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4, minHeight: 36 },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  reminderTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, paddingLeft: 2 },
+  reminderTimeLabel: { flex: 1, fontSize: 14 },
+  timePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
+  timePillText: { fontSize: 14, fontWeight: '700' },
   rowDivider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
   segment: { flexDirection: 'row', gap: 6 },
   segmentItem: {
