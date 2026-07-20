@@ -363,7 +363,7 @@ export default function BookDetailScreen() {
         editing={entrySheet.editing}
         onSaved={() => {
           setEntrySheet((s) => ({ ...s, open: false }));
-          toast.show('Entry saved ✓', 'success');
+          toast.show('Entry saved', 'success');
           load();
         }}
       />

@@ -38,6 +38,24 @@ export type BookFilter = {
 
 const TABLE = 'transactions';
 
+/**
+ * In-memory cache of each book's full (unfiltered) entry set, keyed by book id.
+ * Lets a screen paint instantly with the last-known data instead of flashing a
+ * loader, then refresh in the background. Any write clears it so stale data is
+ * never shown for long.
+ */
+const bookTxCache = new Map<string, Transaction[]>();
+
+/** Last fetched entries for a book, or undefined if never loaded this session. */
+export function getCachedByBook(bookId: string): Transaction[] | undefined {
+  return bookTxCache.get(bookId);
+}
+
+/** Drop all cached entries (call after any create/update/delete). */
+export function invalidateTxCache(): void {
+  bookTxCache.clear();
+}
+
 /** All entries within [start, end) for the logged-in user, newest first. */
 export async function listByMonth(start: string, end: string): Promise<Transaction[]> {
   const { data, error } = await supabase
@@ -64,7 +82,11 @@ export async function listByBook(bookId: string, filter: BookFilter = {}): Promi
     .order('id', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as Transaction[];
+  const result = (data ?? []) as Transaction[];
+  // Only cache the full unfiltered set — a filtered query isn't the whole book.
+  const unfiltered = !filter.type && !filter.start && !filter.end;
+  if (unfiltered) bookTxCache.set(bookId, result);
+  return result;
 }
 
 export async function getTransaction(id: string): Promise<Transaction> {
@@ -77,6 +99,7 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
   // user_id is set automatically by RLS / default — do not send it.
   const { data, error } = await supabase.from(TABLE).insert(input).select().single();
   if (error) throw error;
+  invalidateTxCache();
   return data as Transaction;
 }
 
@@ -91,12 +114,14 @@ export async function updateTransaction(
     .select()
     .single();
   if (error) throw error;
+  invalidateTxCache();
   return data as Transaction;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
+  invalidateTxCache();
 }
 
 /** Sum totals for summary cards/box. */

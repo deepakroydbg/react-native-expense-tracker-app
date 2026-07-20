@@ -136,8 +136,8 @@ export default function BooksScreen() {
       {/* Top header: left = brand (→ About), right = profile photo (→ Profile sheet) */}
       <View style={styles.topHeader}>
         <Pressable style={styles.account} hitSlop={6} onPress={() => router.push('/about')}>
-          <Image source={require('@/assets/images/icon.png')} style={styles.brandLogo} resizeMode="contain" />
-          <Text style={styles.brandName} numberOfLines={1}>
+          <Image source={require('@/assets/images/app-icon.png')} style={styles.brandLogo} resizeMode="cover" />
+          <Text style={[styles.brandName, { color: c.text }]} numberOfLines={1}>
             MyKhata Book
           </Text>
         </Pressable>
@@ -268,8 +268,6 @@ const styles = StyleSheet.create({
   brandName: { fontSize: 17, fontWeight: '700', color: '#1e3a5f', flexShrink: 1 },
   avatarBtn: {
     borderRadius: 19,
-    borderWidth: 2,
-    borderColor: '#ffffff',
   },
   sectionRow: {
     flexDirection: 'row',

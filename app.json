@@ -3,7 +3,7 @@
     "name": "MyKhata Book",
     "slug": "expense-tracker",
     "owner": "deepakroydbg",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "mykhata",
@@ -39,7 +39,7 @@
           ]
         }
       ],
-      "versionCode": 4
+      "versionCode": 5
     },
     "web": {
       "output": "static",
@@ -68,7 +68,13 @@
           "cameraPermission": "MyKhata Book uses your camera so you can take a profile picture."
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "color": "#f5f0e8"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
