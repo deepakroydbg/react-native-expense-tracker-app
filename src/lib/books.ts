@@ -1,5 +1,6 @@
-import { supabase } from '@/lib/supabase';
 import { suggestNextBookName } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
+import { invalidateTxCache } from '@/lib/transactions';
 
 export type Book = {
   id: string;
@@ -15,6 +16,14 @@ export type BookWithBalance = Book & {
 };
 
 const TABLE = 'books';
+
+/** Last fetched book list, so screens can paint chips instantly then refresh. */
+let booksCache: BookWithBalance[] | undefined;
+
+/** Cached book list, or undefined if never loaded this session. */
+export function getCachedBooks(): BookWithBalance[] | undefined {
+  return booksCache;
+}
 
 /** Preset palette cycled across books (by list order) for visual variety. */
 export const BOOK_COLORS = ['#2563eb', '#16a34a', '#7c3aed', '#ea580c', '#0d9488', '#db2777'];
@@ -46,10 +55,11 @@ export async function listBooks(): Promise<BookWithBalance[]> {
     totals.set(t.book_id, cur);
   }
 
-  return (books ?? []).map((b) => {
+  booksCache = (books ?? []).map((b) => {
     const agg = totals.get(b.id);
     return { ...(b as Book), balance: agg?.balance ?? 0, entryCount: agg?.count ?? 0 };
   });
+  return booksCache;
 }
 
 export async function getBook(id: string): Promise<Book> {
@@ -65,6 +75,7 @@ export async function createBook(name: string): Promise<Book> {
     .select()
     .single();
   if (error) throw error;
+  booksCache = undefined;
   return data as Book;
 }
 
@@ -76,6 +87,7 @@ export async function renameBook(id: string, name: string): Promise<Book> {
     .select()
     .single();
   if (error) throw error;
+  booksCache = undefined;
   return data as Book;
 }
 
@@ -85,6 +97,8 @@ export async function deleteBook(id: string): Promise<void> {
   if (txErr) throw txErr;
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
+  booksCache = undefined;
+  invalidateTxCache();
 }
 
 /** Bump updated_at so the book floats to the top after activity. */

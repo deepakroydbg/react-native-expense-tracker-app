@@ -17,11 +17,11 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { InsightsDonut } from '@/components/insights-donut';
 import { AnimatedAmount } from '@/components/ui/animated-number';
 import { useTheme } from '@/hooks/use-theme';
-import { listBooks, type BookWithBalance } from '@/lib/books';
+import { getCachedBooks, listBooks, type BookWithBalance } from '@/lib/books';
 import { getCategory } from '@/lib/categories';
 import { useCurrentBook } from '@/lib/current-book';
 import { dayMonth, formatCurrency, formatSigned, fromISODate } from '@/lib/format';
-import { listByBook, summarize, type Transaction } from '@/lib/transactions';
+import { getCachedByBook, listByBook, summarize, type Transaction } from '@/lib/transactions';
 
 type Mode = 'credit' | 'debit';
 const MODES: { label: string; value: Mode }[] = [
@@ -68,17 +68,25 @@ function InsightsContent() {
   const insets = useSafeAreaInsets();
   const { currentBook, setCurrentBook } = useCurrentBook();
 
-  const [books, setBooks] = useState<BookWithBalance[]>([]);
-  const [txs, setTxs] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from the in-memory caches so arriving here (e.g. via "View Reports")
+  // paints the report instantly instead of flashing a loader card.
+  const initialId = currentBook?.id ?? getCachedBooks()?.[0]?.id ?? null;
+  const [books, setBooks] = useState<BookWithBalance[]>(() => getCachedBooks() ?? []);
+  const [txs, setTxs] = useState<Transaction[]>(() =>
+    initialId ? getCachedByBook(initialId) ?? [] : []
+  );
+  const [loading, setLoading] = useState(
+    // Spinner only when there's nothing cached to render yet.
+    () => (initialId ? getCachedByBook(initialId) === undefined : getCachedBooks() === undefined)
+  );
   const [mode, setMode] = useState<Mode>('debit'); // default Cash Out
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
   const selectedId = currentBook?.id ?? books[0]?.id ?? null;
 
-  // Only the very first load shows the full-screen spinner. Switching books or
-  // re-focusing the tab refreshes data in the background so the previous
-  // insights stay on screen instead of flashing a loader.
+  // The full-screen spinner only ever shows on a genuine cold first load.
+  // Switching books or re-focusing refreshes in the background, and cached
+  // data paints immediately, so no loader card flashes.
   const firstLoad = useRef(true);
 
   const load = useCallback(async () => {
@@ -88,6 +96,8 @@ function InsightsContent() {
       const id = currentBook?.id ?? list[0]?.id ?? null;
       if (id) {
         if (!currentBook && list[0]) setCurrentBook({ id: list[0].id, name: list[0].name });
+        const cached = getCachedByBook(id);
+        if (cached) setTxs(cached); // instant paint before the network refresh
         setTxs(await listByBook(id));
       } else {
         setTxs([]);
@@ -102,9 +112,14 @@ function InsightsContent() {
 
   useFocusEffect(
     useCallback(() => {
-      if (firstLoad.current) setLoading(true);
+      // Cold-start spinner only when there's nothing cached to paint. Reads the
+      // caches directly (non-reactive) so this effect doesn't re-run on refresh.
+      const id = currentBook?.id ?? getCachedBooks()?.[0]?.id ?? null;
+      const haveSomething =
+        (id != null && getCachedByBook(id) !== undefined) || getCachedBooks() !== undefined;
+      if (firstLoad.current && !haveSomething) setLoading(true);
       load();
-    }, [load])
+    }, [load, currentBook])
   );
 
   // Reset highlighted segment when the mode or book changes.
