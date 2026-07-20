@@ -13,23 +13,29 @@ function openSupportMail() {
   );
 }
 
-/** Renders a section body, turning the support email into a tappable mailto link. */
+/**
+ * Renders a section body, turning the support email into a tappable mailto link.
+ * The email sits on its own line and auto-shrinks so a long address always fits
+ * on a single line instead of wrapping.
+ */
 function BodyText({ body }: { body: string }) {
-  const parts = body.split(SUPPORT_EMAIL);
-  if (parts.length === 1) return <Text style={styles.body}>{body}</Text>;
+  const idx = body.indexOf(SUPPORT_EMAIL);
+  if (idx === -1) return <Text style={styles.body}>{body}</Text>;
+  const lead = body.slice(0, idx).trimEnd();
+  const trail = body.slice(idx + SUPPORT_EMAIL.length).trimStart();
   return (
-    <Text style={styles.body}>
-      {parts.map((part, i) => (
-        <Text key={i}>
-          {part}
-          {i < parts.length - 1 ? (
-            <Text style={styles.link} onPress={openSupportMail}>
-              {SUPPORT_EMAIL}
-            </Text>
-          ) : null}
-        </Text>
-      ))}
-    </Text>
+    <>
+      {lead ? <Text style={styles.body}>{lead}</Text> : null}
+      <Text
+        style={[styles.body, styles.link]}
+        onPress={openSupportMail}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}>
+        {SUPPORT_EMAIL}
+      </Text>
+      {trail ? <Text style={styles.body}>{trail}</Text> : null}
+    </>
   );
 }
 
@@ -93,7 +99,7 @@ const styles = StyleSheet.create({
   section: { marginTop: 4 },
   heading: { fontFamily: SERIF, fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 20, marginBottom: 6 },
   body: { fontFamily: SERIF, fontSize: 15, lineHeight: 24, color: '#475569' },
-  link: { color: '#2563eb', fontWeight: '700', textDecorationLine: 'underline' },
+  link: { color: '#2563eb', fontWeight: '700', textDecorationLine: 'underline', marginTop: 4 },
   aboutHeader: { alignItems: 'center', paddingTop: 24, marginBottom: 16 },
   logo: {
     width: 140,
