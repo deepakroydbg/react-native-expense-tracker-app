@@ -167,7 +167,11 @@ function InsightsContent() {
 
   const bookChips =
     books.length > 0 ? (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipsBar}
+        contentContainerStyle={styles.chips}>
         {books.map((b) => {
           const active = b.id === selectedId;
           return (
@@ -438,7 +442,11 @@ const cardShadow = {
 const styles = StyleSheet.create({
   hPad: { paddingHorizontal: 20 },
   title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 12 },
-  chips: { gap: 8, paddingVertical: 4, paddingRight: 8, paddingLeft: 20 },
+  // flexGrow:0 stops the horizontal bar from expanding vertically (on Fabric a
+  // horizontal ScrollView otherwise splits the column and its chips stretch into
+  // tall cards); alignItems:center keeps each chip sized to its own text.
+  chipsBar: { flexGrow: 0, flexShrink: 0, alignSelf: 'stretch' },
+  chips: { gap: 8, paddingVertical: 4, paddingRight: 8, paddingLeft: 20, alignItems: 'center' },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 30 },
