@@ -1,6 +1,9 @@
 export type LegalSection = { heading: string; body: string };
 export type LegalDoc = { title: string; updated: string; sections: LegalSection[] };
 
+/** Single source of truth for the support address, used across the app. */
+export const SUPPORT_EMAIL = 'mykhatabook.support@gmail.com';
+
 export const PRIVACY_POLICY: LegalDoc = {
   title: 'Privacy Policy — MyKhata Book',
   updated: 'Last updated: June 2026',

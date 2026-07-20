@@ -76,6 +76,11 @@ function InsightsContent() {
 
   const selectedId = currentBook?.id ?? books[0]?.id ?? null;
 
+  // Only the very first load shows the full-screen spinner. Switching books or
+  // re-focusing the tab refreshes data in the background so the previous
+  // insights stay on screen instead of flashing a loader.
+  const firstLoad = useRef(true);
+
   const load = useCallback(async () => {
     try {
       const list = await listBooks();
@@ -91,12 +96,13 @@ function InsightsContent() {
       setTxs([]);
     } finally {
       setLoading(false);
+      firstLoad.current = false;
     }
   }, [currentBook, setCurrentBook]);
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      if (firstLoad.current) setLoading(true);
       load();
     }, [load])
   );
@@ -339,7 +345,7 @@ function DetailCard({
         <View key={t.id} style={styles.detailRow}>
           <Text style={[styles.detailDate, { color: c.textSecondary }]}>{dayMonth(fromISODate(t.entry_date))}</Text>
           <Text style={[styles.detailNote, { color: c.text }]} numberOfLines={1}>
-            {t.note?.trim() ? t.note : '—'}
+            {t.note?.trim() ? t.note : name}
           </Text>
           <Text style={[styles.detailRowAmt, { color: t.type === 'credit' ? '#16a34a' : '#dc2626' }]}>
             {formatSigned(Number(t.amount), t.type)}

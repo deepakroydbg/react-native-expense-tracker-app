@@ -16,6 +16,102 @@ const CHANNEL_ID = 'daily-reminder';
 export type ReminderTime = { hour: number; minute: number };
 export const DEFAULT_REMINDER_TIME: ReminderTime = { hour: 21, minute: 0 };
 
+/** How many reminders fire per day, one hour apart from the chosen time. */
+const REMINDERS_PER_DAY = 3;
+
+/**
+ * Pool of playful nudges. Each day we pick a few distinct ones so the reminders
+ * never feel repetitive.
+ */
+const REMINDER_MESSAGES: { title: string; body: string }[] = [
+  {
+    title: '💸 Paisa kahan gaya?',
+    body: "Add today's expenses before you forget. It takes less than 10 seconds!",
+  },
+  {
+    title: '📒 Update your Khata',
+    body: "Keep your Khata complete by recording today's income and expenses.",
+  },
+  {
+    title: '☕ Chai ho ya shopping...',
+    body: 'Every transaction counts. Record it now and stay in control.',
+  },
+  {
+    title: '🌙 Before you sleep...',
+    body: "Spend 10 seconds updating your Khata. Tomorrow's balance will thank you.",
+  },
+  {
+    title: '🛒 Shopping done?',
+    body: "Don't let today's expenses disappear. Add them to your Khata now.",
+  },
+  {
+    title: '💰 Save smarter',
+    body: 'Tracking every rupee today helps you save more tomorrow.',
+  },
+  {
+    title: '📱 One quick update',
+    body: "Record today's transactions now. Your Khata deserves to stay updated.",
+  },
+  {
+    title: '🍕 Ordered something?',
+    body: 'Food, fuel, shopping... Add every expense before you forget!',
+  },
+  {
+    title: '🚗 Fuel bharwaya?',
+    body: 'Record your fuel expense in MyKhata and track your monthly spending.',
+  },
+  {
+    title: '🧾 Bill paid?',
+    body: 'Electricity, internet, rent... Keep every payment safely recorded.',
+  },
+  {
+    title: '📊 Every Rupee Matters',
+    body: 'A small habit today can make a big difference in your savings.',
+  },
+  {
+    title: '✨ Stay organized',
+    body: "Keep your Khata updated with today's income and expenses.",
+  },
+  {
+    title: '💼 Business ya personal?',
+    body: 'No matter what it is, record every transaction in MyKhata.',
+  },
+  {
+    title: '🎯 Daily habit',
+    body: 'Just 10 seconds today can save you hours at month-end.',
+  },
+  {
+    title: '🤔 Yaad hai?',
+    body: "Did you record today's expenses? Do it now before you forget.",
+  },
+  {
+    title: '📒 Khata check!',
+    body: 'Your daily entries keep your finances accurate. Update them now.',
+  },
+  {
+    title: '💵 Income received?',
+    body: "Don't just track expenses—record today's income too.",
+  },
+  {
+    title: '🏠 Ghar ka kharcha',
+    body: "Groceries, milk, gas... Add today's household expenses in MyKhata.",
+  },
+  {
+    title: '🎉 Small expense?',
+    body: 'Even ₹20 matters. Every entry helps you understand your spending.',
+  },
+  {
+    title: '❤️ Future You Says Thanks',
+    body: 'Take 10 seconds to update MyKhata today. Your future self will appreciate it!',
+  },
+];
+
+/** Return `count` distinct messages from the pool in random order. */
+function pickMessages(count: number): { title: string; body: string }[] {
+  const shuffled = [...REMINDER_MESSAGES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 let handlerSet = false;
 function ensureHandler() {
   if (handlerSet) return;
@@ -86,18 +182,23 @@ export async function enableReminder(time: ReminderTime): Promise<boolean> {
 
   await ensureAndroidChannel();
   await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'MyKhata Book',
-      body: "Don't forget to log today's entries 📝",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: time.hour,
-      minute: time.minute,
-      channelId: CHANNEL_ID,
-    },
-  });
+
+  // Schedule the daily reminders, one hour apart, starting at the chosen time.
+  const messages = pickMessages(REMINDERS_PER_DAY);
+  for (let i = 0; i < messages.length; i++) {
+    const totalMinutes = time.hour * 60 + time.minute + i * 60;
+    const hour = Math.floor(totalMinutes / 60) % 24;
+    const minute = totalMinutes % 60;
+    await Notifications.scheduleNotificationAsync({
+      content: messages[i],
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        channelId: CHANNEL_ID,
+      },
+    });
+  }
 
   await AsyncStorage.multiSet([
     [ENABLED_KEY, 'true'],

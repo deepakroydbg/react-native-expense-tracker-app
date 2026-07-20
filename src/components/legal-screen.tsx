@@ -1,11 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { LegalDoc } from '@/lib/legal-content';
+import { SUPPORT_EMAIL, type LegalDoc } from '@/lib/legal-content';
 
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+
+function openSupportMail() {
+  Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() =>
+    Alert.alert('No email app', 'Could not open your email app.')
+  );
+}
+
+/** Renders a section body, turning the support email into a tappable mailto link. */
+function BodyText({ body }: { body: string }) {
+  const parts = body.split(SUPPORT_EMAIL);
+  if (parts.length === 1) return <Text style={styles.body}>{body}</Text>;
+  return (
+    <Text style={styles.body}>
+      {parts.map((part, i) => (
+        <Text key={i}>
+          {part}
+          {i < parts.length - 1 ? (
+            <Text style={styles.link} onPress={openSupportMail}>
+              {SUPPORT_EMAIL}
+            </Text>
+          ) : null}
+        </Text>
+      ))}
+    </Text>
+  );
+}
 
 /** A document-styled page (serif, warm off-white) for Privacy / Terms / About. */
 export function LegalScreen({ doc, logo = false }: { doc: LegalDoc; logo?: boolean }) {
@@ -41,7 +67,7 @@ export function LegalScreen({ doc, logo = false }: { doc: LegalDoc; logo?: boole
         {doc.sections.map((s) => (
           <View key={s.heading} style={styles.section}>
             <Text style={styles.heading}>{s.heading}</Text>
-            <Text style={styles.body}>{s.body}</Text>
+            <BodyText body={s.body} />
           </View>
         ))}
       </ScrollView>
@@ -67,6 +93,7 @@ const styles = StyleSheet.create({
   section: { marginTop: 4 },
   heading: { fontFamily: SERIF, fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 20, marginBottom: 6 },
   body: { fontFamily: SERIF, fontSize: 15, lineHeight: 24, color: '#475569' },
+  link: { color: '#2563eb', fontWeight: '700', textDecorationLine: 'underline' },
   aboutHeader: { alignItems: 'center', paddingTop: 24, marginBottom: 16 },
   logo: {
     width: 140,
