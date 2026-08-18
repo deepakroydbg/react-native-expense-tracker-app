@@ -15,18 +15,24 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Sharing from 'expo-sharing';
+import ViewShot from 'react-native-view-shot';
 
 import { BookMenuSheet } from '@/components/book-menu-sheet';
 import { EntryCard } from '@/components/entry-card';
 import { EntrySheet } from '@/components/entry-sheet';
 import { RenameSheet } from '@/components/rename-sheet';
 import { ShareSheet } from '@/components/share-sheet';
+import { SummaryCard, type SummaryCategory } from '@/components/summary-card';
 import { AnimatedAmount } from '@/components/ui/animated-number';
 import { useToast } from '@/components/ui/toast';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteBook, getBook, renameBook, touchBook } from '@/lib/books';
+import { getCategory } from '@/lib/categories';
 import { useCurrentBook } from '@/lib/current-book';
+import { downloadBookExcel, downloadBookPDF, downloadImage, type DownloadResult } from '@/lib/download';
 import { exportBookExcel, exportBookPDF } from '@/lib/export';
+import { shortDate } from '@/lib/format';
 import {
   deleteTransaction,
   listByBook,
@@ -107,8 +113,9 @@ export default function BookDetailScreen() {
   });
   const [renameOpen, setRenameOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [bookMenu, setBookMenu] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const shotRef = useRef<ViewShot>(null);
 
   // Fix 8: reset every overlay when the app returns to the foreground.
   useEffect(() => {
@@ -119,6 +126,7 @@ export default function BookDetailScreen() {
         setEntrySheet((p) => ({ ...p, open: false }));
         setRenameOpen(false);
         setShareOpen(false);
+        setDownloadOpen(false);
         setBookMenu(false);
       }
     });
@@ -193,16 +201,55 @@ export default function BookDetailScreen() {
     }
   };
 
-  const onExportExcel = async () => {
-    if (exporting) return;
-    setExporting(true);
-    try {
-      await exportBookExcel(bookName, txs);
-    } catch (e: any) {
-      Alert.alert('Export failed', e?.message || 'Could not export this book. Please try again.');
-    } finally {
-      setExporting(false);
+  const bookTotals = useMemo(() => summarize(txs), [txs]);
+
+  const summaryCategories = useMemo<SummaryCategory[]>(() => {
+    const spend = txs.filter((t) => t.type === 'debit');
+    const byName = new Map<string, number>();
+    for (const t of spend) {
+      const name = t.category || 'Other';
+      byName.set(name, (byName.get(name) ?? 0) + Math.abs(Number(t.amount)));
     }
+    const total = Array.from(byName.values()).reduce((sum, n) => sum + n, 0);
+    return Array.from(byName.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([name, amount]) => ({
+        name,
+        amount,
+        percent: total > 0 ? Math.round((amount / total) * 100) : 0,
+        color: getCategory(name).color,
+      }));
+  }, [txs]);
+
+  const captureSummary = async () => {
+    const node = shotRef.current;
+    if (!node?.capture) throw new Error('Could not capture the summary card.');
+    await node.capture();
+    return node.capture();
+  };
+
+  const onShareImage = async () => {
+    const uri = await captureSummary();
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error('Sharing is not available on this device.');
+    }
+    await Sharing.shareAsync(uri, {
+      mimeType: 'image/png',
+      dialogTitle: 'Share MyKhata Book Summary',
+      UTI: 'public.png',
+    });
+  };
+
+  const runDownload = async (fn: () => Promise<DownloadResult>) => {
+    const result = await fn();
+    if (result === 'saved') toast.show('Saved to your device', 'success');
+    return result === 'cancelled' ? ('cancelled' as const) : undefined;
+  };
+
+  const onDownloadImage = async () => {
+    const uri = await captureSummary();
+    await runDownload(() => downloadImage(bookName, uri));
   };
 
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sortMode)!.label;
@@ -222,12 +269,8 @@ export default function BookDetailScreen() {
           <Pressable hitSlop={8} style={styles.headerBtn} onPress={() => setShareOpen(true)}>
             <Ionicons name="share-social-outline" size={21} color={c.text} />
           </Pressable>
-          <Pressable hitSlop={8} style={styles.headerBtn} onPress={onExportExcel} disabled={exporting}>
-            {exporting ? (
-              <ActivityIndicator size="small" color={c.primary} />
-            ) : (
-              <Ionicons name="document-text-outline" size={21} color={c.text} />
-            )}
+          <Pressable hitSlop={8} style={styles.headerBtn} onPress={() => setDownloadOpen(true)}>
+            <Ionicons name="download-outline" size={21} color={c.text} />
           </Pressable>
           <Pressable hitSlop={8} style={styles.headerBtn} onPress={() => setBookMenu(true)}>
             <Ionicons name="ellipsis-vertical" size={21} color={c.text} />
@@ -379,9 +422,35 @@ export default function BookDetailScreen() {
         visible={shareOpen}
         onClose={() => setShareOpen(false)}
         bookName={bookName}
+        onShareImage={onShareImage}
         onSharePDF={() => exportBookPDF(bookName, txs)}
         onShareExcel={() => exportBookExcel(bookName, txs)}
       />
+
+      <ShareSheet
+        visible={downloadOpen}
+        onClose={() => setDownloadOpen(false)}
+        bookName={bookName}
+        variant="download"
+        onShareImage={onDownloadImage}
+        onSharePDF={() => runDownload(() => downloadBookPDF(bookName, txs))}
+        onShareExcel={() => runDownload(() => downloadBookExcel(bookName, txs))}
+      />
+
+      {shareOpen || downloadOpen ? (
+        <View style={styles.offscreen} pointerEvents="none">
+          <ViewShot ref={shotRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }}>
+            <SummaryCard
+              bookName={bookName}
+              totalIn={bookTotals.totalIn}
+              totalOut={bookTotals.totalOut}
+              net={bookTotals.net}
+              categories={summaryCategories}
+              dateLabel={shortDate(new Date())}
+            />
+          </ViewShot>
+        </View>
+      ) : null}
 
       {/* Book 3-dot menu (bottom sheet) */}
       <BookMenuSheet
@@ -502,6 +571,7 @@ function OptionMenu({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  offscreen: { position: 'absolute', left: -9999, top: 0 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

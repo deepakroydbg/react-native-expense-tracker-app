@@ -13,6 +13,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 import { AnimatedSplash } from '@/components/animated-splash';
+import { AppLockGate } from '@/components/app-lock-gate';
+import { AppLockProvider } from '@/lib/app-lock';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { CurrentBookProvider } from '@/lib/current-book';
 import { ProfileProvider } from '@/lib/profile';
@@ -33,11 +35,13 @@ export default function RootLayout() {
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
-              <ProfileProvider>
-                <CurrentBookProvider>
-                  <RootNavigator />
-                </CurrentBookProvider>
-              </ProfileProvider>
+              <AppLockProvider>
+                <ProfileProvider>
+                  <CurrentBookProvider>
+                    <RootNavigator />
+                  </CurrentBookProvider>
+                </ProfileProvider>
+              </AppLockProvider>
             </AuthProvider>
           </ToastProvider>
         </ThemeProvider>
@@ -83,19 +87,23 @@ function RootNavigator() {
   return (
     <NavThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-        }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="faq" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="privacy" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="terms" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
-      </Stack>
+      <View style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+          }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="book/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="faq" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="privacy" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="terms" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="app-lock" options={{ animation: 'slide_from_right' }} />
+        </Stack>
+        <AppLockGate />
+      </View>
     </NavThemeProvider>
   );
 }

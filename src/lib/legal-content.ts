@@ -1,5 +1,9 @@
+import Constants from 'expo-constants';
+
 export type LegalSection = { heading: string; body: string };
 export type LegalDoc = { title: string; updated: string; sections: LegalSection[] };
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 /** Single source of truth for the support address, used across the app. */
 export const SUPPORT_EMAIL = 'mykhatabook.support@gmail.com';
@@ -41,7 +45,7 @@ export const PRIVACY_POLICY: LegalDoc = {
 
 export const ABOUT_DOC: LegalDoc = {
   title: 'About MyKhata Book',
-  updated: 'Version 1.0.0',
+  updated: `Version ${APP_VERSION}`,
   sections: [
     {
       heading: 'What is MyKhata Book?',

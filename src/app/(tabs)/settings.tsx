@@ -11,6 +11,7 @@ import { EditProfileSheet } from '@/components/edit-profile-sheet';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppLock } from '@/lib/app-lock';
 import { useAuth } from '@/lib/auth-context';
 import { formatTime } from '@/lib/format';
 import { useProfile } from '@/lib/profile';
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
   const { signOut } = useAuth();
   const { mode, setMode } = useThemeMode();
   const { avatarUrl, fullName, email, initials } = useProfile();
+  const { enabled: appLockOn } = useAppLock();
 
   const [editOpen, setEditOpen] = useState(false);
   const [reminder, setReminder] = useState(false);
@@ -158,6 +160,17 @@ export default function SettingsScreen() {
         {Platform.OS === 'ios' && showTimePicker ? (
           <Button title="Done" onPress={() => setShowTimePicker(false)} />
         ) : null}
+        <View style={[styles.rowDivider, { backgroundColor: c.border }]} />
+        <Pressable
+          onPress={() => router.push('/app-lock')}
+          style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
+          <Ionicons name="lock-closed-outline" size={20} color={c.textSecondary} />
+          <Text style={[styles.rowLabel, { color: c.text }]}>App Lock</Text>
+          <Text style={[styles.rowValue, { color: appLockOn ? c.primary : c.textSecondary }]}>
+            {appLockOn ? 'ON' : 'OFF'}
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
+        </Pressable>
         <View style={[styles.rowDivider, { backgroundColor: c.border }]} />
         <View style={[styles.row, { alignItems: 'flex-start' }]}>
           <Ionicons name="moon-outline" size={20} color={c.textSecondary} style={{ marginTop: 6 }} />
@@ -293,6 +306,7 @@ const styles = StyleSheet.create({
   email: { fontSize: 14, marginTop: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4, minHeight: 36 },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  rowValue: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
   reminderTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, paddingLeft: 2 },
   reminderTimeLabel: { flex: 1, fontSize: 14 },
   timePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },

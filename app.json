@@ -3,7 +3,7 @@
     "name": "MyKhata Book",
     "slug": "expense-tracker",
     "owner": "deepakroydbg",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "mykhata",
@@ -39,7 +39,7 @@
           ]
         }
       ],
-      "versionCode": 9
+      "versionCode": 10
     },
     "web": {
       "output": "static",
@@ -73,6 +73,13 @@
         "expo-notifications",
         {
           "color": "#f5f0e8"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "MyKhata Book uses Face ID to unlock the app."
         }
       ]
     ],

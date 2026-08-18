@@ -6,10 +6,15 @@ import * as XLSX from 'xlsx-js-style';
 import { formatCurrency, formatTime, fullDateLabel, shortDate } from '@/lib/format';
 import { runningBalances, summarize, type Transaction } from '@/lib/transactions';
 
+/** Branded base filename without extension, e.g. MyKhata_Book_December_2026 */
+export function brandedBaseName(name: string): string {
+  const clean = (name || 'Book').trim().replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+  return `MyKhata_Book_${clean || 'Book'}`;
+}
+
 /** Branded download filename, e.g. MyKhata_Book_December_2026.xlsx */
 function brandedFileName(name: string, ext: string): string {
-  const clean = (name || 'Book').trim().replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
-  return `MyKhata_Book_${clean || 'Book'}.${ext}`;
+  return `${brandedBaseName(name)}.${ext}`;
 }
 
 /** Excel sheet names can't exceed 31 chars or contain : \ / ? * [ ]. */
@@ -43,8 +48,8 @@ const HEADERS = [
   'Running Balance (₹)',
 ];
 
-/** Generate a branded, styled .xlsx for the book and open the native share sheet. */
-export async function exportBookExcel(bookName: string, txs: Transaction[]): Promise<void> {
+/** Build the branded, styled .xlsx workbook and return it as base64. */
+export function buildBookExcelBase64(bookName: string, txs: Transaction[]): string {
   const rows = chronologicalRows(txs);
   const totals = summarize(txs);
   const lastCol = HEADERS.length - 1;
@@ -124,7 +129,12 @@ export async function exportBookExcel(bookName: string, txs: Transaction[]): Pro
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, safeSheetName(bookName));
-  const base64 = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+  return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' }) as string;
+}
+
+/** Generate a branded, styled .xlsx for the book and open the native share sheet. */
+export async function exportBookExcel(bookName: string, txs: Transaction[]): Promise<void> {
+  const base64 = buildBookExcelBase64(bookName, txs);
 
   const uri = `${FileSystem.documentDirectory}${brandedFileName(bookName, 'xlsx')}`;
   await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
@@ -193,20 +203,24 @@ function buildHTML(bookName: string, txs: Transaction[]): string {
     </body></html>`;
 }
 
-/** Generate a branded PDF for the book and open the native share sheet. */
-export async function exportBookPDF(bookName: string, txs: Transaction[]): Promise<void> {
+/** Render the branded PDF and return a local file URI for it. */
+export async function buildBookPDFUri(bookName: string, txs: Transaction[]): Promise<string> {
   const html = buildHTML(bookName, txs);
   const { uri } = await Print.printToFileAsync({ html });
 
-  // Copy to a branded filename so the share sheet shows a meaningful name.
   const dest = `${FileSystem.documentDirectory}${brandedFileName(bookName, 'pdf')}`;
   try {
     await FileSystem.deleteAsync(dest, { idempotent: true });
     await FileSystem.copyAsync({ from: uri, to: dest });
   } catch {
-    // If the copy fails for any reason, fall back to the original temp file.
+    return uri;
   }
-  const shareUri = (await FileSystem.getInfoAsync(dest)).exists ? dest : uri;
+  return (await FileSystem.getInfoAsync(dest)).exists ? dest : uri;
+}
+
+/** Generate a branded PDF for the book and open the native share sheet. */
+export async function exportBookPDF(bookName: string, txs: Transaction[]): Promise<void> {
+  const shareUri = await buildBookPDFUri(bookName, txs);
 
   if (!(await ensureSharing())) throw new Error('Sharing is not available on this device.');
   await Sharing.shareAsync(shareUri, {

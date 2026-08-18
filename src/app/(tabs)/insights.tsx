@@ -336,7 +336,6 @@ function DetailCard({
     Animated.timing(v, { toValue: 1, duration: 250, useNativeDriver: true }).start();
   }, [v]);
   const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
-  const shown = entries.slice(0, 5);
 
   return (
     <Animated.View
@@ -360,20 +359,23 @@ function DetailCard({
         </Pressable>
       </View>
       <View style={[styles.detailDivider, { backgroundColor: c.border }]} />
-      {shown.map((t) => (
-        <View key={t.id} style={styles.detailRow}>
-          <Text style={[styles.detailDate, { color: c.textSecondary }]}>{dayMonth(fromISODate(t.entry_date))}</Text>
-          <Text style={[styles.detailNote, { color: c.text }]} numberOfLines={1}>
-            {t.note?.trim() ? t.note : name}
-          </Text>
-          <Text style={[styles.detailRowAmt, { color: t.type === 'credit' ? '#16a34a' : '#dc2626' }]}>
-            {formatSigned(Number(t.amount), t.type)}
-          </Text>
-        </View>
-      ))}
-      {entries.length > 5 ? (
-        <Text style={[styles.detailMore, { color: c.textSecondary }]}>and {entries.length - 5} more</Text>
-      ) : null}
+      <ScrollView
+        style={styles.detailScroll}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled">
+        {entries.map((t) => (
+          <View key={t.id} style={styles.detailRow}>
+            <Text style={[styles.detailDate, { color: c.textSecondary }]}>{dayMonth(fromISODate(t.entry_date))}</Text>
+            <Text style={[styles.detailNote, { color: c.text }]} numberOfLines={1}>
+              {t.note?.trim() ? t.note : name}
+            </Text>
+            <Text style={[styles.detailRowAmt, { color: t.type === 'credit' ? '#16a34a' : '#dc2626' }]}>
+              {formatSigned(Number(t.amount), t.type)}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -496,7 +498,7 @@ const styles = StyleSheet.create({
   detailDate: { fontSize: 13, width: 52 },
   detailNote: { flex: 1, fontSize: 13, fontWeight: '600' },
   detailRowAmt: { fontSize: 13, fontWeight: '700' },
-  detailMore: { fontSize: 12, marginTop: 6, fontStyle: 'italic' },
+  detailScroll: { maxHeight: 300 },
   cardsRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
   statCard: { flex: 1, borderRadius: 16, padding: 14, gap: 6 },
   statLabel: { fontSize: 13, fontWeight: '600' },
