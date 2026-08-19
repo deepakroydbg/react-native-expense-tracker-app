@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { GoogleGLogo } from '@/components/google-g-logo';
 
@@ -17,14 +17,10 @@ export function GoogleButton({
       onPress={onPress}
       disabled={isDisabled}
       style={({ pressed }) => [styles.btn, { opacity: isDisabled ? 0.6 : pressed ? 0.9 : 1 }]}>
-      {loading ? (
-        <ActivityIndicator color="#4285F4" />
-      ) : (
-        <>
-          <GoogleGLogo size={20} />
-          <Text style={styles.label}>Continue with Google</Text>
-        </>
-      )}
+      <View style={styles.icon}>
+        {loading ? <ActivityIndicator size="small" color="#4285F4" /> : <GoogleGLogo size={20} />}
+      </View>
+      <Text style={styles.label}>{loading ? 'Signing in…' : 'Continue with Google'}</Text>
     </Pressable>
   );
 }
@@ -40,6 +36,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
+  },
+  icon: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     color: '#3c4043',

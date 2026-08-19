@@ -20,7 +20,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "blockedPermissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "intentFilters": [
         {
@@ -80,6 +81,14 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "MyKhata Book uses Face ID to unlock the app."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "MyKhata Book saves your summary card to your photos.",
+          "savePhotosPermission": "MyKhata Book saves your summary card to your photos.",
+          "granularPermissions": []
         }
       ]
     ],

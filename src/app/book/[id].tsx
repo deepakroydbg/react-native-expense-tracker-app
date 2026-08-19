@@ -241,15 +241,18 @@ export default function BookDetailScreen() {
     });
   };
 
-  const runDownload = async (fn: () => Promise<DownloadResult>) => {
+  const runDownload = async (fn: () => Promise<DownloadResult>, savedMessage: string) => {
     const result = await fn();
-    if (result === 'saved') toast.show('Saved to your device', 'success');
-    return result === 'cancelled' ? ('cancelled' as const) : undefined;
+    if (result === 'saved') toast.show(savedMessage, 'success');
+    else if (result === 'denied') {
+      toast.show('Allow photo access to save the image', 'error');
+    }
+    return result === 'saved' || result === 'shared' ? undefined : ('cancelled' as const);
   };
 
   const onDownloadImage = async () => {
     const uri = await captureSummary();
-    await runDownload(() => downloadImage(bookName, uri));
+    await runDownload(() => downloadImage(bookName, uri), 'Saved to your gallery');
   };
 
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sortMode)!.label;
@@ -433,8 +436,8 @@ export default function BookDetailScreen() {
         bookName={bookName}
         variant="download"
         onShareImage={onDownloadImage}
-        onSharePDF={() => runDownload(() => downloadBookPDF(bookName, txs))}
-        onShareExcel={() => runDownload(() => downloadBookExcel(bookName, txs))}
+        onSharePDF={() => runDownload(() => downloadBookPDF(bookName, txs), 'PDF saved to your device')}
+        onShareExcel={() => runDownload(() => downloadBookExcel(bookName, txs), 'Excel saved to your device')}
       />
 
       {shareOpen || downloadOpen ? (
