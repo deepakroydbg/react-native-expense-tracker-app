@@ -1,7 +1,7 @@
 # MyKhata 💰
 
 A personal + small-business expense & ledger app (inspired by Khatabook/Cashbook) built with
-**Expo (SDK 56) + Expo Router + Supabase**.
+**Expo (SDK 54) + Expo Router + Supabase**.
 
 ## Setup
 
@@ -28,17 +28,25 @@ A personal + small-business expense & ledger app (inspired by Khatabook/Cashbook
   - `auth-context.tsx` — session + sign in/up/out with friendly errors.
   - `theme-context.tsx` — light/dark/system theme preference (persisted).
   - `transactions.ts` — CRUD against the `transactions` table.
-  - `format.ts` / `categories.ts` — ₹ formatting, date helpers, preset categories.
+  - `format.ts` / `categories.ts` — ₹ formatting, date helpers, preset + custom categories.
 
 ## Database
 
-Uses the existing `transactions` table (RLS on; `user_id` auto-set). `type = 'credit'` is money in,
+Uses the `transactions` table (RLS on; `user_id` auto-set). `type = 'credit'` is money in,
 `type = 'debit'` is money out.
 
-> Features that need extra tables (Budgets, custom Categories) will ship with SQL to paste into the
-> Supabase SQL Editor — see `docs/sql/` (added per feature).
+Custom categories live in the `categories` table (RLS on; `user_id` auto-set) holding just the
+name, icon and colour. Entries store their category as plain text: deleting a category leaves past
+entries untouched, while **renaming one rewrites matching entries** so history stays consistent.
+
+Schema for tables beyond `transactions` is kept in `docs/sql/`, applied in order:
+
+- `09-custom-categories.sql` — the `categories` table.
+- `10-book-cascade.sql` — makes `transactions.book_id` cascade on delete. **Run this before
+  shipping a build**: `deleteBook()` now issues a single delete and relies on the cascade.
 
 ## Status
 
 - ✅ Core (auth, add/edit/delete, dashboard, month switcher, search/filter) — features 1–6.
-- ⏳ Insights, Budgets, custom Categories, CSV export, polish — features 7–12 (in progress).
+- ✅ Insights, custom Categories, Excel/PDF export — features 7–9, 11.
+- ⏳ Budgets, polish — features 10, 12 (in progress).

@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -10,36 +10,34 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ErrorBoundary } from '@/components/error-boundary';
-import { InsightsDonut } from '@/components/insights-donut';
-import { AnimatedAmount } from '@/components/ui/animated-number';
-import { useTheme } from '@/hooks/use-theme';
-import { getCachedBooks, listBooks, type BookWithBalance } from '@/lib/books';
-import { getCategory } from '@/lib/categories';
-import { useCurrentBook } from '@/lib/current-book';
-import { dayMonth, formatCurrency, formatSigned, fromISODate } from '@/lib/format';
-import { getCachedByBook, listByBook, summarize, type Transaction } from '@/lib/transactions';
+import { ErrorBoundary } from "@/components/error-boundary";
+import { InsightsDonut } from "@/components/insights-donut";
+import { AnimatedAmount } from "@/components/ui/animated-number";
+import { useTheme } from "@/hooks/use-theme";
+import { getCachedBooks, listBooks, type BookWithBalance } from "@/lib/books";
+import { getCategory, useCategoryLookup } from "@/lib/categories";
+import { useCurrentBook } from "@/lib/current-book";
+import {
+  dayMonth,
+  formatCurrency,
+  formatSigned,
+  fromISODate,
+} from "@/lib/format";
+import {
+  getCachedByBook,
+  listByBook,
+  summarize,
+  type Transaction,
+} from "@/lib/transactions";
 
-type Mode = 'credit' | 'debit';
+type Mode = "credit" | "debit";
 const MODES: { label: string; value: Mode }[] = [
-  { label: 'Cash In', value: 'credit' },
-  { label: 'Cash Out', value: 'debit' },
+  { label: "Cash In", value: "credit" },
+  { label: "Cash Out", value: "debit" },
 ];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Food: '#f97316',
-  Transport: '#3b82f6',
-  Bills: '#a855f7',
-  Salary: '#10b981',
-  Shopping: '#ec4899',
-  Health: '#ef4444',
-  Rent: '#14b8a6',
-  Other: '#94a3b8',
-};
-const GREEN_SHADES = ['#065f46', '#16a34a', '#22c55e', '#4ade80', '#14b8a6', '#34d399', '#059669'];
 
 function calculatePercentage(amount: number, total: number): number {
   if (total === 0) return 0;
@@ -50,8 +48,8 @@ function calculatePercentage(amount: number, total: number): number {
 }
 function pctLabel(amount: number, total: number): string {
   const p = calculatePercentage(amount, total);
-  if (p === 0) return '0%';
-  if (p < 1) return '< 1%';
+  if (p === 0) return "0%";
+  if (p < 1) return "< 1%";
   return `${p}%`;
 }
 
@@ -67,26 +65,25 @@ function InsightsContent() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { currentBook, setCurrentBook } = useCurrentBook();
+  const categoryOf = useCategoryLookup();
 
-  // Seed from the in-memory caches so arriving here (e.g. via "View Reports")
-  // paints the report instantly instead of flashing a loader card.
   const initialId = currentBook?.id ?? getCachedBooks()?.[0]?.id ?? null;
-  const [books, setBooks] = useState<BookWithBalance[]>(() => getCachedBooks() ?? []);
+  const [books, setBooks] = useState<BookWithBalance[]>(
+    () => getCachedBooks() ?? [],
+  );
   const [txs, setTxs] = useState<Transaction[]>(() =>
-    initialId ? getCachedByBook(initialId) ?? [] : []
+    initialId ? (getCachedByBook(initialId) ?? []) : [],
   );
-  const [loading, setLoading] = useState(
-    // Spinner only when there's nothing cached to render yet.
-    () => (initialId ? getCachedByBook(initialId) === undefined : getCachedBooks() === undefined)
+  const [loading, setLoading] = useState(() =>
+    initialId
+      ? getCachedByBook(initialId) === undefined
+      : getCachedBooks() === undefined,
   );
-  const [mode, setMode] = useState<Mode>('debit'); // default Cash Out
+  const [mode, setMode] = useState<Mode>("debit"); // default Cash Out
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
   const selectedId = currentBook?.id ?? books[0]?.id ?? null;
 
-  // The full-screen spinner only ever shows on a genuine cold first load.
-  // Switching books or re-focusing refreshes in the background, and cached
-  // data paints immediately, so no loader card flashes.
   const firstLoad = useRef(true);
 
   const load = useCallback(async () => {
@@ -95,7 +92,8 @@ function InsightsContent() {
       setBooks(list);
       const id = currentBook?.id ?? list[0]?.id ?? null;
       if (id) {
-        if (!currentBook && list[0]) setCurrentBook({ id: list[0].id, name: list[0].name });
+        if (!currentBook && list[0])
+          setCurrentBook({ id: list[0].id, name: list[0].name });
         const cached = getCachedByBook(id);
         if (cached) setTxs(cached); // instant paint before the network refresh
         setTxs(await listByBook(id));
@@ -112,14 +110,13 @@ function InsightsContent() {
 
   useFocusEffect(
     useCallback(() => {
-      // Cold-start spinner only when there's nothing cached to paint. Reads the
-      // caches directly (non-reactive) so this effect doesn't re-run on refresh.
       const id = currentBook?.id ?? getCachedBooks()?.[0]?.id ?? null;
       const haveSomething =
-        (id != null && getCachedByBook(id) !== undefined) || getCachedBooks() !== undefined;
+        (id != null && getCachedByBook(id) !== undefined) ||
+        getCachedBooks() !== undefined;
       if (firstLoad.current && !haveSomething) setLoading(true);
       load();
-    }, [load, currentBook])
+    }, [load, currentBook]),
   );
 
   // Reset highlighted segment when the mode or book changes.
@@ -130,40 +127,46 @@ function InsightsContent() {
   const fade = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     fade.setValue(0.3);
-    Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   }, [mode, fade]);
 
   const categoryData = useMemo(() => {
     const src = txs.filter((t) => t.type === mode);
     const map = new Map<string, number>();
     for (const t of src) {
-      const name = t.category || 'Other';
+      const name = t.category || "Other";
       map.set(name, (map.get(name) ?? 0) + Math.abs(Number(t.amount)));
     }
     const rows = Array.from(map.entries())
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount);
-    return rows.map((r, i) => ({
+    return rows.map((r) => ({
       ...r,
-      color: mode === 'credit' ? GREEN_SHADES[i % GREEN_SHADES.length] : CATEGORY_COLORS[r.name] ?? '#94a3b8',
+      color: categoryOf(r.name).color,
     }));
-  }, [txs, mode]);
+  }, [txs, mode, categoryOf]);
 
   const hasData = txs.length > 0;
-  const centerAmount = mode === 'credit' ? totals.totalIn : totals.totalOut;
-  const centerLabel = mode === 'credit' ? 'Cash In' : 'Cash Out';
-  const accent = mode === 'credit' ? '#16a34a' : '#dc2626';
+  const centerAmount = mode === "credit" ? totals.totalIn : totals.totalOut;
+  const centerLabel = mode === "credit" ? "Cash In" : "Cash Out";
+  const accent = mode === "credit" ? "#16a34a" : "#dc2626";
 
   const selectedRow = categoryData.find((r) => r.name === selectedCat) ?? null;
   const selectedEntries = useMemo(() => {
     if (!selectedCat) return [];
     return txs
-      .filter((t) => (t.category || 'Other') === selectedCat && t.type === mode)
+      .filter((t) => (t.category || "Other") === selectedCat && t.type === mode)
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [txs, selectedCat, mode]);
 
   // Shared header pieces (title + book bar) — these scroll away above the sticky toggle.
-  const header = <Text style={[styles.title, styles.hPad, { color: c.text }]}>Insights</Text>;
+  const header = (
+    <Text style={[styles.title, styles.hPad, { color: c.text }]}>Insights</Text>
+  );
 
   const bookChips =
     books.length > 0 ? (
@@ -171,7 +174,8 @@ function InsightsContent() {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.chipsBar}
-        contentContainerStyle={styles.chips}>
+        contentContainerStyle={styles.chips}
+      >
         {books.map((b) => {
           const active = b.id === selectedId;
           return (
@@ -181,10 +185,24 @@ function InsightsContent() {
               style={[
                 styles.chip,
                 active
-                  ? { backgroundColor: c.primary, borderColor: c.primary, transform: [{ scale: 1.05 }], ...chipShadow }
+                  ? {
+                      backgroundColor: c.primary,
+                      borderColor: c.primary,
+                      transform: [{ scale: 1.05 }],
+                      ...chipShadow,
+                    }
                   : { backgroundColor: c.card, borderColor: c.border },
-              ]}>
-              <Text style={{ color: active ? c.onPrimary : c.text, fontWeight: '600', fontSize: 13 }}>{b.name}</Text>
+              ]}
+            >
+              <Text
+                style={{
+                  color: active ? c.onPrimary : c.text,
+                  fontWeight: "600",
+                  fontSize: 13,
+                }}
+              >
+                {b.name}
+              </Text>
             </Pressable>
           );
         })}
@@ -193,7 +211,13 @@ function InsightsContent() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.background,
+          paddingTop: insets.top + 12,
+        }}
+      >
         {header}
         {bookChips}
         <View style={styles.center}>
@@ -205,15 +229,29 @@ function InsightsContent() {
 
   if (!selectedId || !hasData) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.background,
+          paddingTop: insets.top + 12,
+        }}
+      >
         {header}
         {bookChips}
         <View style={styles.emptyWrap}>
-          <View style={[styles.emptyCircle, { borderColor: c.backgroundElement }]}>
-            <Ionicons name="pie-chart-outline" size={44} color={c.textSecondary} />
+          <View
+            style={[styles.emptyCircle, { borderColor: c.backgroundElement }]}
+          >
+            <Ionicons
+              name="pie-chart-outline"
+              size={44}
+              color={c.textSecondary}
+            />
           </View>
           <Text style={[styles.emptyText, { color: c.textSecondary }]}>
-            {books.length === 0 ? 'Create a book and add entries to see insights' : 'Add entries to see insights'}
+            {books.length === 0
+              ? "Create a book and add entries to see insights"
+              : "Add entries to see insights"}
           </Text>
         </View>
       </View>
@@ -221,16 +259,21 @@ function InsightsContent() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: c.background,
+        paddingTop: insets.top + 12,
+      }}
+    >
       <ScrollView
         stickyHeaderIndices={[2]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
-        {/* 0: title, 1: book bar — both scroll away */}
+        contentContainerStyle={styles.scrollContent}
+      >
         {header}
         {bookChips ?? <View />}
 
-        {/* 2: STICKY — Cash In / Cash Out toggle sticks to the top while scrolling */}
         <View style={[styles.stickyToggle, { backgroundColor: c.background }]}>
           <ModeToggle mode={mode} onChange={setMode} />
         </View>
@@ -238,7 +281,11 @@ function InsightsContent() {
         {/* Everything below scrolls under the sticky toggle */}
         <Animated.View style={[styles.hPad, { opacity: fade }]}>
           <InsightsDonut
-            data={categoryData.map((r) => ({ name: r.name, value: r.amount, color: r.color }))}
+            data={categoryData.map((r) => ({
+              name: r.name,
+              value: r.amount,
+              color: r.color,
+            }))}
             total={centerAmount}
             centerLabel={centerLabel}
             centerAmount={centerAmount}
@@ -264,10 +311,19 @@ function InsightsContent() {
         ) : null}
 
         <View style={[styles.hPad, styles.categorySection]}>
-          <Text style={[styles.sectionTitle, { color: c.text }]}>By category</Text>
+          <Text style={[styles.sectionTitle, { color: c.text }]}>
+            By category
+          </Text>
           {categoryData.length === 0 ? (
-            <Text style={[styles.emptyText, { color: c.textSecondary, marginTop: 4 }]}>
-              {mode === 'credit' ? 'No Cash In entries yet.' : 'No Cash Out entries yet.'}
+            <Text
+              style={[
+                styles.emptyText,
+                { color: c.textSecondary, marginTop: 4 },
+              ]}
+            >
+              {mode === "credit"
+                ? "No Cash In entries yet."
+                : "No Cash Out entries yet."}
             </Text>
           ) : (
             categoryData.map((r) => {
@@ -280,29 +336,65 @@ function InsightsContent() {
                   style={[
                     styles.catRow,
                     { backgroundColor: active ? c.backgroundSelected : c.card },
-                    active ? { borderWidth: 1.5, borderColor: r.color } : { borderWidth: 1, borderColor: 'transparent' },
+                    active
+                      ? { borderWidth: 1.5, borderColor: r.color }
+                      : { borderWidth: 1, borderColor: "transparent" },
                     cardShadow,
-                  ]}>
+                  ]}
+                >
                   <View style={[styles.dot, { backgroundColor: r.color }]} />
-                  <Text style={[styles.catName, { color: c.text }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.catName, { color: c.text }]}
+                    numberOfLines={1}
+                  >
                     {r.name}
                   </Text>
-                  <Text style={[styles.catPct, { color: c.textSecondary }]}>{pctLabel(r.amount, centerAmount)}</Text>
-                  <Text style={[styles.catAmt, { color: c.text }]}>{formatCurrency(r.amount)}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={c.textSecondary} />
+                  <Text style={[styles.catPct, { color: c.textSecondary }]}>
+                    {pctLabel(r.amount, centerAmount)}
+                  </Text>
+                  <Text style={[styles.catAmt, { color: c.text }]}>
+                    {formatCurrency(r.amount)}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={c.textSecondary}
+                  />
                 </TouchableOpacity>
               );
             })
           )}
 
           <View style={styles.cardsRow}>
-            <View style={[styles.statCard, { backgroundColor: c.successSoft }, cardShadow]}>
-              <Text style={[styles.statLabel, { color: c.textSecondary }]}>Cash In</Text>
-              <AnimatedAmount value={totals.totalIn} style={[styles.statValue, { color: '#16a34a' }]} />
+            <View
+              style={[
+                styles.statCard,
+                { backgroundColor: c.successSoft },
+                cardShadow,
+              ]}
+            >
+              <Text style={[styles.statLabel, { color: c.textSecondary }]}>
+                Cash In
+              </Text>
+              <AnimatedAmount
+                value={totals.totalIn}
+                style={[styles.statValue, { color: "#16a34a" }]}
+              />
             </View>
-            <View style={[styles.statCard, { backgroundColor: c.dangerSoft }, cardShadow]}>
-              <Text style={[styles.statLabel, { color: c.textSecondary }]}>Cash Out</Text>
-              <AnimatedAmount value={totals.totalOut} style={[styles.statValue, { color: '#dc2626' }]} />
+            <View
+              style={[
+                styles.statCard,
+                { backgroundColor: c.dangerSoft },
+                cardShadow,
+              ]}
+            >
+              <Text style={[styles.statLabel, { color: c.textSecondary }]}>
+                Cash Out
+              </Text>
+              <AnimatedAmount
+                value={totals.totalOut}
+                style={[styles.statValue, { color: "#dc2626" }]}
+              />
             </View>
           </View>
           <NetCard net={totals.net} />
@@ -333,27 +425,44 @@ function DetailCard({
   const cat = getCategory(name);
   const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(v, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+    Animated.timing(v, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
   }, [v]);
-  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
+  const translateY = v.interpolate({
+    inputRange: [0, 1],
+    outputRange: [16, 0],
+  });
 
   return (
     <Animated.View
       style={[
         styles.detailCard,
-        { backgroundColor: c.card, borderColor: c.border, borderLeftColor: color, opacity: v, transform: [{ translateY }] },
-      ]}>
+        {
+          backgroundColor: c.card,
+          borderColor: c.border,
+          borderLeftColor: color,
+          opacity: v,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
       <View style={styles.detailHead}>
-        <View style={[styles.detailIcon, { backgroundColor: color + '22' }]}>
+        <View style={[styles.detailIcon, { backgroundColor: color + "22" }]}>
           <Ionicons name={cat.icon} size={20} color={color} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.detailName, { color: c.text }]}>{name}</Text>
           <Text style={[styles.detailMeta, { color: c.textSecondary }]}>
-            {pct} of total · {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+            {pct} of total · {entries.length}{" "}
+            {entries.length === 1 ? "entry" : "entries"}
           </Text>
         </View>
-        <Text style={[styles.detailAmount, { color: amountColor }]}>{formatCurrency(amount)}</Text>
+        <Text style={[styles.detailAmount, { color: amountColor }]}>
+          {formatCurrency(amount)}
+        </Text>
         <Pressable onPress={onClose} hitSlop={8} style={{ marginLeft: 8 }}>
           <Ionicons name="close" size={18} color={c.textSecondary} />
         </Pressable>
@@ -363,14 +472,25 @@ function DetailCard({
         style={styles.detailScroll}
         nestedScrollEnabled
         showsVerticalScrollIndicator
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+      >
         {entries.map((t) => (
           <View key={t.id} style={styles.detailRow}>
-            <Text style={[styles.detailDate, { color: c.textSecondary }]}>{dayMonth(fromISODate(t.entry_date))}</Text>
-            <Text style={[styles.detailNote, { color: c.text }]} numberOfLines={1}>
+            <Text style={[styles.detailDate, { color: c.textSecondary }]}>
+              {dayMonth(fromISODate(t.entry_date))}
+            </Text>
+            <Text
+              style={[styles.detailNote, { color: c.text }]}
+              numberOfLines={1}
+            >
               {t.note?.trim() ? t.note : name}
             </Text>
-            <Text style={[styles.detailRowAmt, { color: t.type === 'credit' ? '#16a34a' : '#dc2626' }]}>
+            <Text
+              style={[
+                styles.detailRowAmt,
+                { color: t.type === "credit" ? "#16a34a" : "#dc2626" },
+              ]}
+            >
               {formatSigned(Number(t.amount), t.type)}
             </Text>
           </View>
@@ -380,9 +500,17 @@ function DetailCard({
   );
 }
 
-function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+function ModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: Mode;
+  onChange: (m: Mode) => void;
+}) {
   const [w, setW] = useState(0);
-  const slide = useRef(new Animated.Value(MODES.findIndex((m) => m.value === mode))).current;
+  const slide = useRef(
+    new Animated.Value(MODES.findIndex((m) => m.value === mode)),
+  ).current;
   useEffect(() => {
     Animated.timing(slide, {
       toValue: MODES.findIndex((m) => m.value === mode),
@@ -392,18 +520,43 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
   }, [mode, slide]);
   const pillW = w > 0 ? (w - 6) / 2 : 0;
   return (
-    <View style={styles.modeToggle} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+    <View
+      style={styles.modeToggle}
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+    >
       <Animated.View
         style={[
           styles.modePill,
-          { width: pillW, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [0, pillW] }) }] },
+          {
+            width: pillW,
+            transform: [
+              {
+                translateX: slide.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, pillW],
+                }),
+              },
+            ],
+          },
         ]}
       />
       {MODES.map((m) => {
         const active = m.value === mode;
         return (
-          <Pressable key={m.value} style={styles.modeHalf} onPress={() => onChange(m.value)}>
-            <Text style={{ color: active ? '#fff' : '#64748b', fontWeight: '700', fontSize: 13 }}>{m.label}</Text>
+          <Pressable
+            key={m.value}
+            style={styles.modeHalf}
+            onPress={() => onChange(m.value)}
+          >
+            <Text
+              style={{
+                color: active ? "#fff" : "#64748b",
+                fontWeight: "700",
+                fontSize: 13,
+              }}
+            >
+              {m.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -414,12 +567,26 @@ function ModeToggle({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => voi
 function NetCard({ net }: { net: number }) {
   const x = useRef(new Animated.Value(-1)).current;
   useEffect(() => {
-    Animated.timing(x, { toValue: 1, duration: 1100, delay: 300, useNativeDriver: true }).start();
+    Animated.timing(x, {
+      toValue: 1,
+      duration: 1100,
+      delay: 300,
+      useNativeDriver: true,
+    }).start();
   }, [x]);
-  const translateX = x.interpolate({ inputRange: [-1, 1], outputRange: [-220, 420] });
+  const translateX = x.interpolate({
+    inputRange: [-1, 1],
+    outputRange: [-220, 420],
+  });
   return (
-    <View style={[styles.netCard, { backgroundColor: '#2563eb' }]}>
-      <Animated.View pointerEvents="none" style={[styles.shine, { transform: [{ translateX }, { rotate: '18deg' }] }]} />
+    <View style={[styles.netCard, { backgroundColor: "#2563eb" }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.shine,
+          { transform: [{ translateX }, { rotate: "18deg" }] },
+        ]}
+      />
       <Text style={styles.netLabel}>Net Balance</Text>
       <AnimatedAmount value={net} style={styles.netValue} />
     </View>
@@ -427,14 +594,14 @@ function NetCard({ net }: { net: number }) {
 }
 
 const chipShadow = {
-  shadowColor: '#000',
+  shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.12,
   shadowRadius: 4,
   elevation: 3,
 };
 const cardShadow = {
-  shadowColor: '#000',
+  shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.08,
   shadowRadius: 6,
@@ -443,40 +610,76 @@ const cardShadow = {
 
 const styles = StyleSheet.create({
   hPad: { paddingHorizontal: 20 },
-  title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 12 },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginBottom: 12,
+  },
   // flexGrow:0 stops the horizontal bar from expanding vertically (on Fabric a
   // horizontal ScrollView otherwise splits the column and its chips stretch into
   // tall cards); alignItems:center keeps each chip sized to its own text.
-  chipsBar: { flexGrow: 0, flexShrink: 0, alignSelf: 'stretch' },
-  chips: { gap: 8, paddingVertical: 4, paddingRight: 8, paddingLeft: 20, alignItems: 'center' },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 30 },
-  emptyCircle: { width: 140, height: 140, borderRadius: 70, borderWidth: 18, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 14, textAlign: 'center' },
+  chipsBar: { flexGrow: 0, flexShrink: 0, alignSelf: "stretch" },
+  chips: {
+    gap: 8,
+    paddingVertical: 4,
+    paddingRight: 8,
+    paddingLeft: 20,
+    alignItems: "center",
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    paddingHorizontal: 30,
+  },
+  emptyCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: { fontSize: 14, textAlign: "center" },
   stickyToggle: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 8 },
   modeToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    flexDirection: "row",
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     padding: 3,
     height: 40,
     marginTop: 6,
     marginBottom: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
-  modePill: { position: 'absolute', left: 3, top: 3, height: 34, borderRadius: 10, backgroundColor: '#2563eb' },
-  modeHalf: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  modePill: {
+    position: "absolute",
+    left: 3,
+    top: 3,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#2563eb",
+  },
+  modeHalf: { flex: 1, alignItems: "center", justifyContent: "center" },
   scrollContent: { paddingBottom: 40 },
   categorySection: { paddingTop: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 12 },
   catRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     borderRadius: 12,
     paddingHorizontal: 14,
@@ -484,27 +687,62 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  catName: { flex: 1, fontSize: 15, fontWeight: '700' },
+  catName: { flex: 1, fontSize: 15, fontWeight: "700" },
   catPct: { fontSize: 13 },
-  catAmt: { fontSize: 14, fontWeight: '800' },
-  detailCard: { borderRadius: 14, borderWidth: 1, borderLeftWidth: 4, padding: 14, marginTop: 8, ...cardShadow },
-  detailHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  detailName: { fontSize: 17, fontWeight: '800' },
+  catAmt: { fontSize: 14, fontWeight: "800" },
+  detailCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+    padding: 14,
+    marginTop: 8,
+    ...cardShadow,
+  },
+  detailHead: { flexDirection: "row", alignItems: "center", gap: 10 },
+  detailIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailName: { fontSize: 17, fontWeight: "800" },
   detailMeta: { fontSize: 12, marginTop: 2 },
-  detailAmount: { fontSize: 17, fontWeight: '800' },
+  detailAmount: { fontSize: 17, fontWeight: "800" },
   detailDivider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 5,
+  },
   detailDate: { fontSize: 13, width: 52 },
-  detailNote: { flex: 1, fontSize: 13, fontWeight: '600' },
-  detailRowAmt: { fontSize: 13, fontWeight: '700' },
+  detailNote: { flex: 1, fontSize: 13, fontWeight: "600" },
+  detailRowAmt: { fontSize: 13, fontWeight: "700" },
   detailScroll: { maxHeight: 300 },
-  cardsRow: { flexDirection: 'row', gap: 12, marginTop: 18 },
+  cardsRow: { flexDirection: "row", gap: 12, marginTop: 18 },
   statCard: { flex: 1, borderRadius: 16, padding: 14, gap: 6 },
-  statLabel: { fontSize: 13, fontWeight: '600' },
-  statValue: { fontSize: 18, fontWeight: '800' },
-  netCard: { borderRadius: 18, padding: 18, gap: 6, marginTop: 12, overflow: 'hidden' },
-  netLabel: { fontSize: 14, fontWeight: '600', color: '#fff', opacity: 0.9 },
-  netValue: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
-  shine: { position: 'absolute', top: -20, bottom: -20, width: 60, backgroundColor: 'rgba(255,255,255,0.25)' },
+  statLabel: { fontSize: 13, fontWeight: "600" },
+  statValue: { fontSize: 18, fontWeight: "800" },
+  netCard: {
+    borderRadius: 18,
+    padding: 18,
+    gap: 6,
+    marginTop: 12,
+    overflow: "hidden",
+  },
+  netLabel: { fontSize: 14, fontWeight: "600", color: "#fff", opacity: 0.9 },
+  netValue: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#fff",
+    letterSpacing: -0.5,
+  },
+  shine: {
+    position: "absolute",
+    top: -20,
+    bottom: -20,
+    width: 60,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
 });

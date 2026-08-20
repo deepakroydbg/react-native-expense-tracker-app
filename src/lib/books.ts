@@ -93,8 +93,6 @@ export async function renameBook(id: string, name: string): Promise<Book> {
 
 /** Deletes a book and all of its entries. */
 export async function deleteBook(id: string): Promise<void> {
-  const { error: txErr } = await supabase.from('transactions').delete().eq('book_id', id);
-  if (txErr) throw txErr;
   const { error } = await supabase.from(TABLE).delete().eq('id', id);
   if (error) throw error;
   booksCache = undefined;

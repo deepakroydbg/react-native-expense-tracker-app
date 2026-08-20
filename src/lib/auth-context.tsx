@@ -2,6 +2,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
 
+import { resetCategories } from '@/lib/categories';
 import { supabase } from '@/lib/supabase';
 
 type AuthResult = { error: string | null };
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    resetCategories();
   };
 
   return (

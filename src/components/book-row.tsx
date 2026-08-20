@@ -27,7 +27,7 @@ export function BookRow({
   const [menuOpen, setMenuOpen] = useState(false);
   // Shrink large balances so they never truncate (e.g. ₹55,55,474).
   const balanceDigits = String(Math.round(Math.abs(book.balance))).length;
-  const balanceFont = balanceDigits > 6 ? 12 : 16;
+  const balanceFont = balanceDigits > 6 ? 12 : 15;
 
   const scale = useRef(new Animated.Value(1)).current;
   const flash = useRef(new Animated.Value(0)).current;
@@ -66,30 +66,30 @@ export function BookRow({
             Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start()
           }
           style={styles.inner}>
-          <View style={[styles.icon, { backgroundColor: color }]}>
-            <Ionicons name="book" size={22} color="#fff" />
-          </View>
-          <View style={styles.middle}>
+          <View style={styles.topRow}>
+            <View style={[styles.icon, { backgroundColor: color }]}>
+              <Ionicons name="book" size={19} color="#fff" />
+            </View>
             <Text style={[styles.name, { color: c.text }]} numberOfLines={1} ellipsizeMode="tail">
               {book.name}
             </Text>
-            <Text style={[styles.updated, { color: c.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
-              Updated on {shortDate(book.updated_at)}
-            </Text>
+            <View style={styles.rightArea}>
+              <Text
+                style={[styles.balance, { color: positive ? c.success : c.danger, fontSize: balanceFont }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}>
+                {positive ? '' : '-'}
+                {formatCurrency(Math.abs(book.balance))}
+              </Text>
+              <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={styles.menuBtn}>
+                <Ionicons name="ellipsis-vertical" size={20} color={c.textSecondary} />
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.rightArea}>
-            <Text
-              style={[styles.balance, { color: positive ? c.success : c.danger, fontSize: balanceFont }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}>
-              {positive ? '' : '-'}
-              {formatCurrency(Math.abs(book.balance))}
-            </Text>
-            <Pressable onPress={() => setMenuOpen(true)} hitSlop={10} style={styles.menuBtn}>
-              <Ionicons name="ellipsis-vertical" size={20} color={c.textSecondary} />
-            </Pressable>
-          </View>
+          <Text style={[styles.updated, { color: c.textSecondary }]} numberOfLines={1}>
+            Updated on {shortDate(book.updated_at)}
+          </Text>
         </Pressable>
       </Animated.View>
 
@@ -116,21 +116,23 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   inner: {
+    padding: 10,
+    gap: 4,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
     gap: 12,
   },
   icon: {
-    width: 46,
-    height: 46,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  middle: { flex: 1, gap: 2 },
-  name: { fontSize: 15, fontWeight: '600' },
-  updated: { fontSize: 12 },
+  name: { flex: 1, fontSize: 14, fontWeight: '600' },
+  updated: { fontSize: 11 },
   rightArea: {
     maxWidth: 110,
     flexDirection: 'row',

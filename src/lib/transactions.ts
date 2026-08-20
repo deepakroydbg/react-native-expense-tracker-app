@@ -56,20 +56,6 @@ export function invalidateTxCache(): void {
   bookTxCache.clear();
 }
 
-/** All entries within [start, end) for the logged-in user, newest first. */
-export async function listByMonth(start: string, end: string): Promise<Transaction[]> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .gte('entry_date', start)
-    .lt('entry_date', end)
-    .order('entry_date', { ascending: false })
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as Transaction[];
-}
-
 /** Entries for a single book, newest first, with optional type/date filtering. */
 export async function listByBook(bookId: string, filter: BookFilter = {}): Promise<Transaction[]> {
   let query = supabase.from(TABLE).select('*').eq('book_id', bookId);
@@ -87,12 +73,6 @@ export async function listByBook(bookId: string, filter: BookFilter = {}): Promi
   const unfiltered = !filter.type && !filter.start && !filter.end;
   if (unfiltered) bookTxCache.set(bookId, result);
   return result;
-}
-
-export async function getTransaction(id: string): Promise<Transaction> {
-  const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).single();
-  if (error) throw error;
-  return data as Transaction;
 }
 
 export async function createTransaction(input: TransactionInput): Promise<Transaction> {

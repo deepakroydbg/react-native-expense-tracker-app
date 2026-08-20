@@ -50,7 +50,13 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={fg[variant]} />
       ) : (
-        <Text style={[styles.label, { color: fg[variant] }]}>{title}</Text>
+        <Text
+          style={[styles.label, { color: fg[variant] }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );

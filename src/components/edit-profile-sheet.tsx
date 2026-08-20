@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,7 +19,6 @@ import { useToast } from '@/components/ui/toast';
 import { useTheme } from '@/hooks/use-theme';
 import { fromISODate, shortDate, toISODate } from '@/lib/format';
 import { useProfile } from '@/lib/profile';
-import { Alert } from 'react-native';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
