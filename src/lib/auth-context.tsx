@@ -2,8 +2,10 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
 
+import { resetBooksCache } from '@/lib/books';
 import { resetCategories } from '@/lib/categories';
 import { supabase } from '@/lib/supabase';
+import { invalidateTxCache } from '@/lib/transactions';
 
 type AuthResult = { error: string | null };
 
@@ -80,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     resetCategories();
+    resetBooksCache();
+    invalidateTxCache();
   };
 
   return (

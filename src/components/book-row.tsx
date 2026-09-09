@@ -106,14 +106,9 @@ export function BookRow({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
   },
   inner: {
     padding: 10,
@@ -127,12 +122,12 @@ const styles = StyleSheet.create({
   icon: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: { flex: 1, fontSize: 14, fontWeight: '600' },
-  updated: { fontSize: 11 },
+  name: { flex: 1, fontSize: 14, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
+  updated: { fontFamily: 'Manrope_500Medium', fontSize: 11 },
   rightArea: {
     maxWidth: 110,
     flexDirection: 'row',
@@ -140,6 +135,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 2,
   },
-  balance: { flexShrink: 1, fontWeight: '800', textAlign: 'right' },
+  balance: { flexShrink: 1, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', textAlign: 'right' },
   menuBtn: { paddingLeft: 2, paddingVertical: 4 },
 });

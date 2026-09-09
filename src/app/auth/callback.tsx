@@ -76,5 +76,5 @@ export default function AuthCallback() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  text: { fontSize: 15, fontWeight: '600' },
+  text: { fontSize: 15, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
 });

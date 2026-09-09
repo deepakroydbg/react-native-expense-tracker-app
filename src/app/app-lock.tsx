@@ -1,13 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PinDots, PinKeypad } from '@/components/pin-pad';
+import { ScreenBackground } from '@/components/ui/screen-background';
 import { useToast } from '@/components/ui/toast';
 import { useTheme } from '@/hooks/use-theme';
 import { authenticateBiometric, PIN_LENGTH, useAppLock } from '@/lib/app-lock';
+import { useAuth } from '@/lib/auth-context';
+import { useThemeMode } from '@/lib/theme-context';
+import { SIGN_OUT_AFTER, usePinAttempts } from '@/lib/pin-attempts';
 
 type Stage = 'idle' | 'verify-disable' | 'verify-change' | 'set' | 'confirm';
 
@@ -18,11 +32,14 @@ const STAGE_TITLE: Record<Exclude<Stage, 'idle'>, string> = {
   confirm: 'Confirm PIN',
 };
 
+const LOCKOUT_MSG = 'Too many attempts.';
+const LAST_WARNING = 'Last attempt before sign out.';
+
 const STAGE_HINT: Record<Exclude<Stage, 'idle'>, string> = {
   'verify-disable': 'Confirm your PIN to turn off App Lock.',
-  'verify-change': 'Confirm your current PIN before choosing a new one.',
-  set: `Choose a ${PIN_LENGTH}-digit PIN to lock the app.`,
-  confirm: 'Enter the same PIN again to confirm.',
+  'verify-change': 'Confirm your current PIN.',
+  set: `Choose a ${PIN_LENGTH}-digit PIN.`,
+  confirm: 'Enter the same PIN again.',
 };
 
 export default function AppLockScreen() {
@@ -31,14 +48,39 @@ export default function AppLockScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { enabled, biometricsAvailable, enableLock, disableLock, verifyPin } = useAppLock();
+  const { signOut } = useAuth();
+  const { scheme } = useThemeMode();
+  const { attempts, remaining, loaded, registerFailure, reset } = usePinAttempts();
+  const switchTrackOff = scheme === 'dark' ? c.border : '#C3C9D2';
 
   const [stage, setStage] = useState<Stage>('idle');
   const [pin, setPin] = useState('');
   const [firstPin, setFirstPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const signOutRan = useRef(false);
+  const stageShift = useRef(new Animated.Value(0)).current;
 
   const isVerifyStage = stage === 'verify-disable' || stage === 'verify-change';
+  const cooling = remaining > 0;
+
+  const forceSignOut = () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    const run = () => {
+      if (signOutRan.current) return;
+      signOutRan.current = true;
+      void (async () => {
+        await disableLock();
+        await signOut();
+      })();
+    };
+    Alert.alert('Signed out for security', 'Too many failed attempts.', [{ text: 'OK', onPress: run }], {
+      cancelable: false,
+    });
+    setTimeout(run, 3000);
+  };
 
   const cancel = () => {
     setStage('idle');
@@ -76,7 +118,13 @@ export default function AppLockScreen() {
     setBusy(true);
     try {
       if (stage === 'set') {
+        if (enabled && (await verifyPin(candidate))) {
+          setPin('');
+          setError('New PIN must be different from your current PIN.');
+          return;
+        }
         setFirstPin(candidate);
+        await new Promise((resolve) => setTimeout(resolve, 220));
         setPin('');
         setStage('confirm');
         return;
@@ -91,6 +139,7 @@ export default function AppLockScreen() {
           return;
         }
         await enableLock(candidate);
+        await reset();
         cancel();
         toast.show(enabled ? 'PIN updated ✓' : 'App Lock enabled! ✓', 'success');
         return;
@@ -100,9 +149,19 @@ export default function AppLockScreen() {
         const ok = await verifyPin(candidate);
         if (!ok) {
           setPin('');
-          setError('Wrong PIN. Try again.');
+          const { outcome, attempts: used } = await registerFailure();
+          if (outcome === 'sign-out') {
+            setError('Too many failed attempts.');
+            forceSignOut();
+          } else if (outcome === 'cooldown') {
+            setError(LOCKOUT_MSG);
+          } else {
+            const left = SIGN_OUT_AFTER - used;
+            setError(`Wrong PIN. ${left} ${left === 1 ? 'attempt' : 'attempts'} left.`);
+          }
           return;
         }
+        await reset();
         await onVerified(stage);
       }
     } catch {
@@ -114,7 +173,7 @@ export default function AppLockScreen() {
   };
 
   const verifyWithBiometrics = async () => {
-    if (!isVerifyStage || busy) return;
+    if (!isVerifyStage || busy || cooling) return;
     setBusy(true);
     try {
       const ok = await authenticateBiometric(
@@ -124,6 +183,7 @@ export default function AppLockScreen() {
         setError('Fingerprint not recognised. Enter your PIN instead.');
         return;
       }
+      await reset();
       await onVerified(stage);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -132,8 +192,27 @@ export default function AppLockScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!cooling && error === LOCKOUT_MSG) setError(null);
+  }, [cooling, error]);
+
+  useEffect(() => {
+    if (stage === 'idle') return;
+    stageShift.setValue(1);
+    Animated.timing(stageShift, {
+      toValue: 0,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [stage, stageShift]);
+
+  const padDisabled = busy || cooling || signingOut || (isVerifyStage && !loaded);
+  const statusText = cooling ? `Too many attempts. Try again in ${remaining}s` : error;
+  const showLastWarning = isVerifyStage && attempts === SIGN_OUT_AFTER - 1 && cooling;
+
   const onDigit = (digit: string) => {
-    if (busy || pin.length >= PIN_LENGTH) return;
+    if (padDisabled || pin.length >= PIN_LENGTH) return;
     setError(null);
     const next = pin + digit;
     setPin(next);
@@ -141,13 +220,13 @@ export default function AppLockScreen() {
   };
 
   const onDelete = () => {
-    if (busy) return;
+    if (padDisabled) return;
     setError(null);
     setPin((p) => p.slice(0, -1));
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
+    <ScreenBackground style={{ paddingTop: insets.top }}>
       <View style={[styles.header, { borderColor: c.border }]}>
         <Pressable
           onPress={() => (stage === 'idle' ? router.back() : cancel())}
@@ -173,8 +252,9 @@ export default function AppLockScreen() {
               <Switch
                 value={enabled}
                 onValueChange={onToggle}
-                trackColor={{ true: c.primary }}
+                trackColor={{ false: switchTrackOff, true: c.primary }}
                 thumbColor="#fff"
+                ios_backgroundColor={switchTrackOff}
               />
             </View>
 
@@ -194,38 +274,57 @@ export default function AppLockScreen() {
 
           <Text style={[styles.help, { color: c.textSecondary }]}>
             {biometricsAvailable
-              ? `When App Lock is on, MyKhata Book asks for your fingerprint or ${PIN_LENGTH}-digit PIN every time you open it.`
-              : `When App Lock is on, MyKhata Book asks for your ${PIN_LENGTH}-digit PIN every time you open it.`}
+              ? `Unlock with your fingerprint or ${PIN_LENGTH}-digit PIN on every launch.`
+              : `Unlock with your ${PIN_LENGTH}-digit PIN on every launch.`}
           </Text>
           <Text style={[styles.help, { color: c.textSecondary }]}>
-            Your PIN is stored securely on this device only. If you forget it, use “Forgot PIN?
-            Sign out” on the lock screen — your books and entries stay safe and come back when you
-            sign in again.
+            PIN is saved on this device only. Forgot it? Sign out from the lock screen.
           </Text>
         </ScrollView>
       ) : (
         <View style={styles.pinArea}>
-          <Text style={[styles.pinTitle, { color: c.text }]}>{STAGE_TITLE[stage]}</Text>
-          <Text style={[styles.pinHint, { color: c.textSecondary }]}>{STAGE_HINT[stage]}</Text>
+          <Animated.View
+            style={[
+              styles.stageBlock,
+              {
+                opacity: stageShift.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+                transform: [
+                  {
+                    translateX: stageShift.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 48],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <Text style={[styles.pinTitle, { color: c.text }]}>{STAGE_TITLE[stage]}</Text>
+            <Text style={[styles.pinHint, { color: c.textSecondary }]}>{STAGE_HINT[stage]}</Text>
 
-          <View style={styles.dotsWrap}>
-            <PinDots
-              filled={pin.length}
-              color={c.primary}
-              emptyColor={c.border}
-              errorColor={c.danger}
-              hasError={!!error}
-            />
+            <View style={styles.dotsWrap}>
+              <PinDots
+                filled={pin.length}
+                color={c.primary}
+                emptyColor={c.border}
+                errorColor={c.danger}
+                hasError={!!error || cooling}
+              />
+            </View>
+          </Animated.View>
+
+          <View style={styles.errorWrap}>
+            <Text style={[styles.error, { color: statusText ? c.danger : 'transparent' }]}>
+              {statusText || ' '}
+            </Text>
+            {showLastWarning ? (
+              <Text style={[styles.warning, { color: c.danger }]}>{LAST_WARNING}</Text>
+            ) : null}
           </View>
-
-          <Text style={[styles.error, { color: error ? c.danger : 'transparent' }]}>
-            {error || ' '}
-          </Text>
 
           <PinKeypad
             onDigit={onDigit}
             onDelete={onDelete}
-            disabled={busy}
+            disabled={padDisabled}
             textColor={c.text}
             keyColor={c.backgroundElement}
             mutedColor={c.textSecondary}
@@ -250,12 +349,11 @@ export default function AppLockScreen() {
           </Pressable>
         </View>
       )}
-    </View>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -265,21 +363,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerBtn: { padding: 4, minWidth: 32, alignItems: 'center' },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  content: { padding: 20, gap: 14 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 14 },
+  headerTitle: { flex: 1, fontSize: 17, fontFamily: 'Manrope_700Bold', fontWeight: '700', textAlign: 'center' },
+  content: { padding: 16, gap: 14 },
+  card: { borderRadius: 6, borderWidth: 1, padding: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: '700' },
-  rowStatus: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  rowLabel: { flex: 1, fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
+  rowStatus: { fontSize: 13, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', marginTop: 2 },
   rowDivider: { height: StyleSheet.hairlineWidth, marginVertical: 6 },
-  help: { fontSize: 13, lineHeight: 19 },
+  help: { fontFamily: 'Manrope_500Medium', fontSize: 13, lineHeight: 19 },
   pinArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  pinTitle: { fontSize: 20, fontWeight: '800' },
-  pinHint: { fontSize: 13, marginTop: 6, textAlign: 'center' },
+  stageBlock: { alignItems: 'center', width: '100%' },
+  pinTitle: { fontSize: 20, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800' },
+  pinHint: { fontFamily: 'Manrope_500Medium', fontSize: 13, marginTop: 6, textAlign: 'center' },
   dotsWrap: { marginTop: 28 },
-  error: { fontSize: 13, fontWeight: '600', marginTop: 14, marginBottom: 18, textAlign: 'center' },
+  errorWrap: { minHeight: 58, justifyContent: 'center', marginTop: 12, marginBottom: 14 },
+  error: { fontSize: 13, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', textAlign: 'center' },
+  warning: { fontSize: 12, fontFamily: 'Manrope_700Bold', fontWeight: '700', textAlign: 'center', marginTop: 4 },
   bioRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 22, padding: 6 },
-  bioText: { fontSize: 15, fontWeight: '700' },
+  bioText: { fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
   cancel: { marginTop: 12, padding: 8 },
-  cancelText: { fontSize: 15, fontWeight: '700' },
+  cancelText: { fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
 });

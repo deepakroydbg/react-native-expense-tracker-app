@@ -121,9 +121,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: { fontSize: 20, fontWeight: '800', marginTop: 6 },
-  email: { fontSize: 14 },
+  name: { fontSize: 20, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', marginTop: 6 },
+  email: { fontFamily: 'Manrope_500Medium', fontSize: 14 },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 15 },
-  rowLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
+  rowLabel: { flex: 1, fontSize: 16, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
 });

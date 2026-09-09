@@ -65,7 +65,11 @@ export function ActionDialog({
                 <Text
                   style={[
                     styles.actionText,
-                    { color: colorFor(a.style), fontWeight: a.style === 'cancel' ? '600' : '700' },
+                    {
+                      color: colorFor(a.style),
+                      fontFamily:
+                        a.style === 'cancel' ? 'Manrope_600SemiBold' : 'Manrope_700Bold',
+                    },
                   ]}>
                   {a.label}
                 </Text>
@@ -93,9 +97,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   head: { padding: 24, paddingBottom: 18, alignItems: 'center' },
-  title: { fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  message: { fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  title: { fontSize: 18, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', textAlign: 'center' },
+  message: { fontFamily: 'Manrope_500Medium', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 },
   divider: { height: StyleSheet.hairlineWidth, width: '100%' },
   action: { paddingVertical: 16, alignItems: 'center' },
-  actionText: { fontSize: 16 },
+  actionText: { fontFamily: 'Manrope_500Medium', fontSize: 16 },
 });

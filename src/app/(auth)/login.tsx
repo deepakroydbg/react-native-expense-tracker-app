@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GoogleButton } from '@/components/google-button';
+import { ScreenBackground } from '@/components/ui/screen-background';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth-context';
 import { useThemeMode } from '@/lib/theme-context';
@@ -29,11 +30,8 @@ export default function LoginScreen() {
   const headingColor = scheme === 'dark' ? '#ffffff' : '#1e3a5f';
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: c.background, paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}>
+    <ScreenBackground
+      style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <Text
         style={[styles.welcome, { color: headingColor }]}
         numberOfLines={1}
@@ -56,20 +54,19 @@ export default function LoginScreen() {
       <View style={styles.buttonWrap}>
         <GoogleButton onPress={onGoogle} loading={loading} />
       </View>
-    </View>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
   welcome: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold', fontWeight: '700',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -85,7 +82,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  tagline: {
+  tagline: { fontFamily: 'Manrope_500Medium',
     fontSize: 15,
     fontStyle: 'italic',
     color: '#64748b',
@@ -98,9 +95,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 6,
     marginBottom: 16,
     width: '100%',
   },
-  errorText: { flex: 1, fontSize: 14 },
+  errorText: { fontFamily: 'Manrope_500Medium', flex: 1, fontSize: 14 },
 });

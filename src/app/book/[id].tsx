@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ViewShot from "react-native-view-shot";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { BookMenuSheet } from "@/components/book-menu-sheet";
 import { EntryCard } from "@/components/entry-card";
@@ -24,6 +25,7 @@ import { EntrySheet } from "@/components/entry-sheet";
 import { RenameSheet } from "@/components/rename-sheet";
 import { ShareSheet } from "@/components/share-sheet";
 import { SummaryCard, type SummaryCategory } from "@/components/summary-card";
+import { ScreenBackground } from "@/components/ui/screen-background";
 import { AnimatedAmount } from "@/components/ui/animated-number";
 import { useToast } from "@/components/ui/toast";
 import { useTheme } from "@/hooks/use-theme";
@@ -83,7 +85,7 @@ export default function BookDetailScreen() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, action } = useLocalSearchParams<{ id: string; action?: string }>();
   const bookId = id!;
   const { setCurrentBook } = useCurrentBook();
   const toast = useToast();
@@ -149,6 +151,17 @@ export default function BookDetailScreen() {
     });
     return () => sub.remove();
   }, []);
+
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!action || autoOpened.current) return;
+    autoOpened.current = true;
+    setEntrySheet({
+      open: true,
+      type: action === "credit" ? "credit" : "debit",
+      editing: null,
+    });
+  }, [action]);
 
   const load = useCallback(async () => {
     try {
@@ -288,12 +301,7 @@ export default function BookDetailScreen() {
   const typeLabel = TYPE_OPTIONS.find((o) => o.value === typeFilter)!.label;
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: c.background, paddingTop: insets.top },
-      ]}
-    >
+    <ScreenBackground style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View style={[styles.header, { borderColor: c.border }]}>
         <Pressable
@@ -380,50 +388,53 @@ export default function BookDetailScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             <View>
-              <View
-                style={[
-                  styles.summary,
-                  {
-                    backgroundColor:
-                      totals.net > 0
-                        ? c.successSoft
-                        : totals.net < 0
-                          ? c.dangerSoft
-                          : c.card,
-                    borderColor: c.border,
-                  },
-                ]}
+              <LinearGradient
+                colors={["#3f4759", "#232833"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.summary}
               >
                 <View style={styles.sumRow}>
-                  <Text style={[styles.sumLabel, { color: c.text }]}>
+                  <Text style={[styles.sumLabel, { color: "#a9b4c9" }]}>
                     Net Balance
                   </Text>
                   <AnimatedAmount
                     value={totals.net}
-                    style={[styles.sumValue, { color: c.text }]}
+                    style={[
+                      styles.sumValue,
+                      {
+                        color:
+                          totals.net > 0
+                            ? "#4ade80"
+                            : totals.net < 0
+                              ? "#f87171"
+                              : "#ffffff",
+                      },
+                    ]}
                   />
                 </View>
-                <View style={[styles.divider, { backgroundColor: c.border }]} />
+                <View
+                  style={[
+                    styles.divider,
+                    { backgroundColor: "rgba(255,255,255,0.15)" },
+                  ]}
+                />
                 <View style={styles.sumRow}>
-                  <Text
-                    style={[styles.sumLabelSmall, { color: c.textSecondary }]}
-                  >
+                  <Text style={[styles.sumLabelSmall, { color: "#c3cad9" }]}>
                     Total In (+)
                   </Text>
                   <AnimatedAmount
                     value={totals.totalIn}
-                    style={[styles.sumValueSmall, { color: c.success }]}
+                    style={[styles.sumValueSmall, { color: "#4ade80" }]}
                   />
                 </View>
                 <View style={styles.sumRow}>
-                  <Text
-                    style={[styles.sumLabelSmall, { color: c.textSecondary }]}
-                  >
+                  <Text style={[styles.sumLabelSmall, { color: "#c3cad9" }]}>
                     Total Out (-)
                   </Text>
                   <AnimatedAmount
                     value={totals.totalOut}
-                    style={[styles.sumValueSmall, { color: c.danger }]}
+                    style={[styles.sumValueSmall, { color: "#f87171" }]}
                   />
                 </View>
                 <Pressable
@@ -433,16 +444,12 @@ export default function BookDetailScreen() {
                   }}
                   style={styles.reportsBtn}
                 >
-                  <Text style={[styles.reportsText, { color: c.primary }]}>
+                  <Text style={[styles.reportsText, { color: "#3B82F6" }]}>
                     VIEW REPORTS
                   </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={c.primary}
-                  />
+                  <Ionicons name="chevron-forward" size={16} color="#3B82F6" />
                 </Pressable>
-              </View>
+              </LinearGradient>
               <Text style={[styles.showing, { color: c.textSecondary }]}>
                 Showing {filtered.length}{" "}
                 {filtered.length === 1 ? "entry" : "entries"}
@@ -618,7 +625,7 @@ export default function BookDetailScreen() {
         }}
         onClose={() => setTypeMenu(false)}
       />
-    </View>
+    </ScreenBackground>
   );
 }
 
@@ -741,7 +748,6 @@ function OptionMenu({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   offscreen: { position: "absolute", left: -9999, top: 0 },
   header: {
     flexDirection: "row",
@@ -760,8 +766,9 @@ const styles = StyleSheet.create({
   headerBtn: { padding: 4, minWidth: 28, alignItems: "center" },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 17,
+    fontFamily: "Manrope_700Bold",
+    fontWeight: "700",
     textAlign: "center",
   },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 2 },
@@ -777,25 +784,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 6,
     paddingHorizontal: 10,
     height: 40,
   },
   dropdownSort: { flex: 1.5 },
   dropdownType: { flex: 1 },
-  dropdownText: { flex: 1, fontSize: 13, fontWeight: "600" },
+  dropdownText: { flex: 1, fontSize: 13, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingHorizontal: 16, paddingBottom: 110 },
-  summary: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 10 },
+  summary: { borderRadius: 6, padding: 16, gap: 10 },
   sumRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sumLabel: { fontSize: 16, fontWeight: "700" },
-  sumValue: { fontSize: 18, fontWeight: "800" },
-  sumLabelSmall: { fontSize: 14, fontWeight: "600" },
-  sumValueSmall: { fontSize: 15, fontWeight: "800" },
+  sumLabel: { fontSize: 16, fontFamily: "Manrope_700Bold", fontWeight: "700" },
+  sumValue: { fontSize: 18, fontFamily: "Manrope_800ExtraBold", fontWeight: "800" },
+  sumLabelSmall: { fontSize: 14, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
+  sumValueSmall: { fontSize: 15, fontFamily: "Manrope_800ExtraBold", fontWeight: "800" },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 2 },
   reportsBtn: {
     flexDirection: "row",
@@ -803,17 +810,17 @@ const styles = StyleSheet.create({
     gap: 2,
     marginTop: 2,
   },
-  reportsText: { fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
+  reportsText: { fontSize: 14, fontFamily: "Manrope_800ExtraBold", fontWeight: "800", letterSpacing: 0.3 },
   showing: {
     fontSize: 13,
-    fontWeight: "500",
+    fontFamily: "Manrope_500Medium", fontWeight: "500",
     marginTop: 12,
     marginBottom: 4,
     marginLeft: 2,
   },
   sectionDate: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: "Manrope_700Bold", fontWeight: "700",
     paddingTop: 14,
     paddingBottom: 8,
   },
@@ -822,18 +829,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 6,
     marginTop: 12,
   },
-  errorText: { flex: 1, fontSize: 14 },
+  errorText: { fontFamily: 'Manrope_500Medium', flex: 1, fontSize: 14 },
   empty: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 50,
     gap: 8,
   },
-  emptyTitle: { fontSize: 18, fontWeight: "700", marginTop: 8 },
-  emptyText: { fontSize: 14, textAlign: "center", paddingHorizontal: 30 },
+  emptyTitle: { fontSize: 18, fontFamily: "Manrope_700Bold", fontWeight: "700", marginTop: 8 },
+  emptyText: { fontFamily: 'Manrope_500Medium', fontSize: 14, textAlign: "center", paddingHorizontal: 30 },
   bottomBar: {
     position: "absolute",
     left: 0,
@@ -852,7 +859,7 @@ const styles = StyleSheet.create({
   bottomBtnWrap: { flex: 1 },
   bottomBtn: {
     height: 56,
-    borderRadius: 12,
+    borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -866,7 +873,7 @@ const styles = StyleSheet.create({
   bottomBtnText: {
     color: "#fff",
     fontSize: 17,
-    fontWeight: "700",
+    fontFamily: "Manrope_700Bold", fontWeight: "700",
     letterSpacing: 0.3,
   },
   menuBackdrop: {
@@ -879,13 +886,13 @@ const styles = StyleSheet.create({
   menuCard: {
     width: "100%",
     maxWidth: 320,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     padding: 8,
   },
   menuTitle: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "Manrope_700Bold", fontWeight: "700",
     letterSpacing: 0.5,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -896,7 +903,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 6,
   },
-  menuItemText: { fontSize: 15, fontWeight: "600" },
+  menuItemText: { fontSize: 15, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
 });

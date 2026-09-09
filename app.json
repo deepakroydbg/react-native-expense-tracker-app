@@ -3,7 +3,7 @@
     "name": "MyKhata Book",
     "slug": "expense-tracker",
     "owner": "deepakroydbg",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "mykhata",
@@ -40,7 +40,7 @@
           ]
         }
       ],
-      "versionCode": 10
+      "versionCode": 11
     },
     "web": {
       "output": "static",

@@ -71,5 +71,5 @@ const styles = StyleSheet.create({
     width: 60,
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
-  text: { fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  text: { fontSize: 16, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', letterSpacing: 0.5 },
 });

@@ -33,6 +33,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
-  title: { fontSize: 18, fontWeight: '700', color: '#374151', marginTop: 6 },
-  subtitle: { fontSize: 14, color: '#9ca3af', textAlign: 'center' },
+  title: { fontSize: 18, fontFamily: 'Manrope_700Bold', fontWeight: '700', color: '#374151', marginTop: 6 },
+  subtitle: { fontFamily: 'Manrope_500Medium', fontSize: 14, color: '#9ca3af', textAlign: 'center' },
 });

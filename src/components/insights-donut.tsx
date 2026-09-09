@@ -18,6 +18,7 @@ const SIZE = 280;
 const RADIUS = 110;
 const STROKE = 45;
 const STROKE_SELECTED = 55;
+const MIN_ARC = 10;
 
 /**
  * Single thick donut ring with reliable angle-based tap detection.
@@ -46,15 +47,22 @@ export function InsightsDonut({
   const circ = 2 * Math.PI * RADIUS;
   const sum = data.reduce((s, d) => s + (d.value > 0 ? d.value : 0), 0);
 
+  const positive = data.filter((d) => d.value > 0);
+  const minFrac =
+    positive.length > 0 ? Math.min(MIN_ARC / circ, 1 / positive.length) : 0;
+  const rawFracs = positive.map((d) => (sum > 0 ? d.value / sum : 0));
+  const tinyTotal = rawFracs.reduce((s, f) => s + (f < minFrac ? minFrac : 0), 0);
+  const restTotal = rawFracs.reduce((s, f) => s + (f < minFrac ? 0 : f), 0);
+  const restScale = restTotal > 0 ? (1 - tinyTotal) / restTotal : 0;
+
   let acc = 0;
-  const segs = data
-    .filter((d) => d.value > 0)
-    .map((d) => {
-      const frac = sum > 0 ? d.value / sum : 0;
-      const startFrac = acc;
-      acc += frac;
-      return { ...d, frac, startFrac, mid: startFrac + frac / 2 };
-    });
+  const segs = positive.map((d, i) => {
+    const raw = rawFracs[i];
+    const frac = raw < minFrac ? minFrac : raw * restScale;
+    const startFrac = acc;
+    acc += frac;
+    return { ...d, frac, startFrac, mid: startFrac + frac / 2 };
+  });
 
   // Angle-based hit testing (Fix 4B): map the tap point to a segment.
   const handleTouch = (e: GestureResponderEvent) => {
@@ -135,9 +143,9 @@ export function InsightsDonut({
 const styles = StyleSheet.create({
   wrap: { width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   label: { position: 'absolute', width: 68, alignItems: 'center' },
-  labelPct: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  labelName: { color: '#fff', fontSize: 10, fontWeight: '600' },
+  labelPct: { color: '#fff', fontSize: 11, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
+  labelName: { color: '#fff', fontSize: 10, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
   center: { position: 'absolute', width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
-  centerLabel: { fontSize: 12, fontWeight: '600' },
-  centerValue: { fontWeight: '800', textAlign: 'center', maxWidth: 130 },
+  centerLabel: { fontSize: 12, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
+  centerValue: { fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', textAlign: 'center', maxWidth: 130 },
 });

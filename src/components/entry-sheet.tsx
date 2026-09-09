@@ -177,7 +177,7 @@ export function EntrySheet({
       onPress={onSave}
       loading={saving}
       variant={isCredit ? "primary" : "danger"}
-      style={{ backgroundColor: accent, height: 52, borderRadius: 12 }}
+      style={{ backgroundColor: accent, height: 52, borderRadius: 6}}
     />
   );
 
@@ -191,7 +191,7 @@ export function EntrySheet({
       >
         {/* In / Out type toggle with animated sliding pill (Fix 1) */}
         <View
-          style={styles.toggle}
+          style={[styles.toggle, { backgroundColor: c.surfaceMuted, borderColor: c.border }]}
           onLayout={(e) => setToggleW(e.nativeEvent.layout.width)}
         >
           <Animated.View
@@ -219,7 +219,7 @@ export function EntrySheet({
             <Text
               style={[
                 styles.toggleText,
-                { color: isCredit ? "#fff" : "#94a3b8" },
+                { color: isCredit ? c.onPrimary : c.textSecondary },
               ]}
             >
               + Cash In
@@ -229,7 +229,7 @@ export function EntrySheet({
             <Text
               style={[
                 styles.toggleText,
-                { color: !isCredit ? "#fff" : "#94a3b8" },
+                { color: !isCredit ? c.onPrimary : c.textSecondary },
               ]}
             >
               − Cash Out
@@ -250,7 +250,7 @@ export function EntrySheet({
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor="#ccc"
+              placeholderTextColor={c.textSecondary}
               keyboardType="numeric"
               style={[styles.amountInput, { color: accent }]}
               autoFocus
@@ -334,7 +334,7 @@ export function EntrySheet({
         ) : null}
 
         {/* Payment method pills */}
-        <Text style={[styles.label, { color: "#666" }]}>Payment method</Text>
+        <Text style={[styles.label, { color: c.textSecondary }]}>Payment method</Text>
         <View style={styles.pills}>
           {PAYMENT_METHODS.map((pm) => {
             const active = paymentMethod === pm;
@@ -345,17 +345,17 @@ export function EntrySheet({
                 style={[
                   styles.pill,
                   active
-                    ? { backgroundColor: "#2563eb", borderColor: "#2563eb" }
+                    ? { backgroundColor: c.primary, borderColor: c.primary }
                     : {
                         backgroundColor: c.inputBackground,
-                        borderColor: "#e5e7eb",
+                        borderColor: c.border,
                       },
                 ]}
               >
                 <Text
                   style={{
-                    color: active ? "#fff" : c.text,
-                    fontWeight: "600",
+                    color: active ? c.onPrimary : c.text,
+                    fontFamily: "Manrope_600SemiBold", fontWeight: "600",
                     fontSize: 14,
                   }}
                 >
@@ -366,7 +366,7 @@ export function EntrySheet({
           })}
         </View>
 
-        <Text style={[styles.label, { color: "#666" }]}>Category</Text>
+        <Text style={[styles.label, { color: c.textSecondary }]}>Category</Text>
         <View style={styles.catGrid}>
           {categories.map((cat) => {
             const active = category === cat.name;
@@ -377,10 +377,10 @@ export function EntrySheet({
                 style={[
                   styles.catChip,
                   active
-                    ? { backgroundColor: "#eff6ff", borderColor: "#2563eb" }
+                    ? { backgroundColor: c.backgroundSelected, borderColor: c.primary }
                     : {
                         backgroundColor: c.inputBackground,
-                        borderColor: "#e5e7eb",
+                        borderColor: c.border,
                       },
                 ]}
               >
@@ -404,7 +404,7 @@ export function EntrySheet({
                       hitSlop={6}
                       style={[styles.catBadge, styles.catBadgeLeft]}
                     >
-                      <Ionicons name="trash" size={11} color="#dc2626" />
+                      <Ionicons name="trash" size={11} color={c.danger} />
                     </Pressable>
                   </>
                 ) : null}
@@ -412,7 +412,7 @@ export function EntrySheet({
                 <Text
                   style={[
                     styles.catText,
-                    { color: active ? "#2563eb" : c.text },
+                    { color: active ? c.primary : c.text },
                   ]}
                   numberOfLines={1}
                 >
@@ -426,12 +426,12 @@ export function EntrySheet({
             <Pressable
               style={[
                 styles.catChip,
-                { backgroundColor: "#eff6ff", borderColor: "#2563eb" },
+                { backgroundColor: c.backgroundSelected, borderColor: c.primary },
               ]}
             >
-              <Ionicons name="pricetag" size={20} color="#6B7280" />
+              <Ionicons name="pricetag" size={20} color={c.textSecondary} />
               <Text
-                style={[styles.catText, { color: "#2563eb" }]}
+                style={[styles.catText, { color: c.primary }]}
                 numberOfLines={1}
               >
                 {category}
@@ -444,15 +444,16 @@ export function EntrySheet({
           onPress={() => setCategorySheet({ open: true, editing: null })}
           style={({ pressed }) => [
             styles.addCatButton,
+            { backgroundColor: c.backgroundSelected, borderColor: c.primary },
             pressed && { opacity: 0.6 },
           ]}
         >
-          <Ionicons name="add-circle" size={18} color="#2563eb" />
-          <Text style={styles.addCatText}>Add category</Text>
+          <Ionicons name="add-circle" size={18} color={c.primary} />
+          <Text style={[styles.addCatText, { color: c.primary }]}>Add category</Text>
         </Pressable>
 
         {/* Note */}
-        <Text style={[styles.label, { color: "#666" }]}>Note (optional)</Text>
+        <Text style={[styles.label, { color: c.textSecondary }]}>Note (optional)</Text>
         <TextInput
           value={note}
           onChangeText={setNote}
@@ -462,7 +463,7 @@ export function EntrySheet({
             styles.noteInput,
             {
               backgroundColor: c.inputBackground,
-              borderColor: "#e5e7eb",
+              borderColor: c.border,
               color: c.text,
             },
           ]}
@@ -490,7 +491,7 @@ export function EntrySheet({
 const styles = StyleSheet.create({
   toggle: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
+    borderWidth: 1,
     borderRadius: 14,
     padding: 4,
     height: 52,
@@ -507,13 +508,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   toggleHalf: { flex: 1, alignItems: "center", justifyContent: "center" },
-  toggleText: { fontSize: 15, fontWeight: "700" },
+  toggleText: { fontSize: 15, fontFamily: "Manrope_700Bold", fontWeight: "700" },
   amountTouch: { width: "100%", alignItems: "center", paddingVertical: 12 },
   amountRow: { flexDirection: "row", alignItems: "center", gap: 2 },
-  rupee: { fontSize: 28, fontWeight: "bold" },
+  rupee: { fontFamily: "Manrope_700Bold", fontSize: 28 },
   amountInput: {
+    fontFamily: "Manrope_700Bold",
     fontSize: 40,
-    fontWeight: "bold",
     textAlign: "center",
     padding: 0,
     minWidth: 70,
@@ -525,13 +526,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
+    borderRadius: 6,
     paddingHorizontal: 12,
     height: 44,
   },
-  fieldText: { fontSize: 14, fontWeight: "600" },
-  label: { fontSize: 12, fontWeight: "600", marginTop: 8, marginBottom: 4 },
+  fieldText: { fontSize: 14, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
+  label: { fontSize: 12, fontFamily: "Manrope_600SemiBold", fontWeight: "600", marginTop: 8, marginBottom: 4 },
   pills: { flexDirection: "row", gap: 6 },
   pill: {
     flex: 1,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
   },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
   },
   catBadge: {
@@ -574,16 +574,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    backgroundColor: "#eff6ff",
-    borderColor: "#bfdbfe",
   },
-  addCatText: { fontSize: 14, fontWeight: "700", color: "#2563eb" },
-  catText: { fontSize: 11, fontWeight: "600" },
-  noteInput: {
+  addCatText: { fontSize: 14, fontFamily: "Manrope_700Bold", fontWeight: "700" },
+  catText: { fontSize: 11, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
+  noteInput: { fontFamily: 'Manrope_500Medium',
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
@@ -594,8 +592,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 6,
     marginTop: 8,
   },
-  errorText: { flex: 1, fontSize: 13 },
+  errorText: { fontFamily: 'Manrope_500Medium', flex: 1, fontSize: 13 },
 });

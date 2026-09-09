@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: "Manrope_700Bold", fontWeight: "700",
     marginBottom: 16,
     paddingHorizontal: 20,
   },

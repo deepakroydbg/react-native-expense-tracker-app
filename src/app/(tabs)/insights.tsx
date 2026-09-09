@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/error-boundary";
 import { InsightsDonut } from "@/components/insights-donut";
+import { ScreenBackground } from "@/components/ui/screen-background";
 import { AnimatedAmount } from "@/components/ui/animated-number";
 import { useTheme } from "@/hooks/use-theme";
 import { getCachedBooks, listBooks, type BookWithBalance } from "@/lib/books";
@@ -108,8 +109,11 @@ function InsightsContent() {
     }
   }, [currentBook, setCurrentBook]);
 
+  const scrollRef = useRef<ScrollView>(null);
+
   useFocusEffect(
     useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
       const id = currentBook?.id ?? getCachedBooks()?.[0]?.id ?? null;
       const haveSomething =
         (id != null && getCachedByBook(id) !== undefined) ||
@@ -153,7 +157,7 @@ function InsightsContent() {
   const hasData = txs.length > 0;
   const centerAmount = mode === "credit" ? totals.totalIn : totals.totalOut;
   const centerLabel = mode === "credit" ? "Cash In" : "Cash Out";
-  const accent = mode === "credit" ? "#16a34a" : "#dc2626";
+  const accent = mode === "credit" ? c.cashInText : c.cashOutText;
 
   const selectedRow = categoryData.find((r) => r.name === selectedCat) ?? null;
   const selectedEntries = useMemo(() => {
@@ -189,18 +193,11 @@ function InsightsContent() {
                       backgroundColor: c.primary,
                       borderColor: c.primary,
                       transform: [{ scale: 1.05 }],
-                      ...chipShadow,
                     }
                   : { backgroundColor: c.card, borderColor: c.border },
               ]}
             >
-              <Text
-                style={{
-                  color: active ? c.onPrimary : c.text,
-                  fontWeight: "600",
-                  fontSize: 13,
-                }}
-              >
+              <Text style={[styles.chipText, { color: active ? c.onPrimary : c.text }]}>
                 {b.name}
               </Text>
             </Pressable>
@@ -211,31 +208,19 @@ function InsightsContent() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: c.background,
-          paddingTop: insets.top + 12,
-        }}
-      >
+      <ScreenBackground style={{ paddingTop: insets.top + 12 }}>
         {header}
         {bookChips}
         <View style={styles.center}>
           <ActivityIndicator size="large" color={c.primary} />
         </View>
-      </View>
+      </ScreenBackground>
     );
   }
 
   if (!selectedId || !hasData) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: c.background,
-          paddingTop: insets.top + 12,
-        }}
-      >
+      <ScreenBackground style={{ paddingTop: insets.top + 12 }}>
         {header}
         {bookChips}
         <View style={styles.emptyWrap}>
@@ -254,19 +239,14 @@ function InsightsContent() {
               : "Add entries to see insights"}
           </Text>
         </View>
-      </View>
+      </ScreenBackground>
     );
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: c.background,
-        paddingTop: insets.top + 12,
-      }}
-    >
+    <ScreenBackground style={{ paddingTop: insets.top + 12 }}>
       <ScrollView
+        ref={scrollRef}
         stickyHeaderIndices={[2]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -274,7 +254,7 @@ function InsightsContent() {
         {header}
         {bookChips ?? <View />}
 
-        <View style={[styles.stickyToggle, { backgroundColor: c.background }]}>
+        <View style={[styles.stickyToggle, { backgroundColor: c.gradientFrom }]}>
           <ModeToggle mode={mode} onChange={setMode} />
         </View>
 
@@ -339,7 +319,6 @@ function InsightsContent() {
                     active
                       ? { borderWidth: 1.5, borderColor: r.color }
                       : { borderWidth: 1, borderColor: "transparent" },
-                    cardShadow,
                   ]}
                 >
                   <View style={[styles.dot, { backgroundColor: r.color }]} />
@@ -365,42 +344,14 @@ function InsightsContent() {
             })
           )}
 
-          <View style={styles.cardsRow}>
-            <View
-              style={[
-                styles.statCard,
-                { backgroundColor: c.successSoft },
-                cardShadow,
-              ]}
-            >
-              <Text style={[styles.statLabel, { color: c.textSecondary }]}>
-                Cash In
-              </Text>
-              <AnimatedAmount
-                value={totals.totalIn}
-                style={[styles.statValue, { color: "#16a34a" }]}
-              />
-            </View>
-            <View
-              style={[
-                styles.statCard,
-                { backgroundColor: c.dangerSoft },
-                cardShadow,
-              ]}
-            >
-              <Text style={[styles.statLabel, { color: c.textSecondary }]}>
-                Cash Out
-              </Text>
-              <AnimatedAmount
-                value={totals.totalOut}
-                style={[styles.statValue, { color: "#dc2626" }]}
-              />
-            </View>
-          </View>
-          <NetCard net={totals.net} />
+          <FlowCard
+            totalIn={totals.totalIn}
+            totalOut={totals.totalOut}
+            net={totals.net}
+          />
         </View>
       </ScrollView>
-    </View>
+    </ScreenBackground>
   );
 }
 
@@ -488,7 +439,7 @@ function DetailCard({
             <Text
               style={[
                 styles.detailRowAmt,
-                { color: t.type === "credit" ? "#16a34a" : "#dc2626" },
+                { color: t.type === "credit" ? c.cashInText : c.cashOutText },
               ]}
             >
               {formatSigned(Number(t.amount), t.type)}
@@ -507,6 +458,7 @@ function ModeToggle({
   mode: Mode;
   onChange: (m: Mode) => void;
 }) {
+  const c = useTheme();
   const [w, setW] = useState(0);
   const slide = useRef(
     new Animated.Value(MODES.findIndex((m) => m.value === mode)),
@@ -521,12 +473,13 @@ function ModeToggle({
   const pillW = w > 0 ? (w - 6) / 2 : 0;
   return (
     <View
-      style={styles.modeToggle}
+      style={[styles.modeToggle, { backgroundColor: c.card, borderColor: c.border }]}
       onLayout={(e) => setW(e.nativeEvent.layout.width)}
     >
       <Animated.View
         style={[
           styles.modePill,
+          { backgroundColor: c.primary },
           {
             width: pillW,
             transform: [
@@ -550,8 +503,8 @@ function ModeToggle({
           >
             <Text
               style={{
-                color: active ? "#fff" : "#64748b",
-                fontWeight: "700",
+                color: active ? c.onPrimary : c.textSecondary,
+                fontFamily: "Manrope_700Bold", fontWeight: "700",
                 fontSize: 13,
               }}
             >
@@ -564,56 +517,107 @@ function ModeToggle({
   );
 }
 
-function NetCard({ net }: { net: number }) {
-  const x = useRef(new Animated.Value(-1)).current;
-  useEffect(() => {
-    Animated.timing(x, {
-      toValue: 1,
-      duration: 1100,
-      delay: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [x]);
-  const translateX = x.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [-220, 420],
-  });
+function FlowRow({
+  color,
+  label,
+  amount,
+  share,
+}: {
+  color: string;
+  label: string;
+  amount: number;
+  share: number;
+}) {
+  const c = useTheme();
   return (
-    <View style={[styles.netCard, { backgroundColor: "#2563eb" }]}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.shine,
-          { transform: [{ translateX }, { rotate: "18deg" }] },
-        ]}
+    <View style={styles.flowRow}>
+      <View style={[styles.flowDot, { backgroundColor: color }]} />
+      <Text style={[styles.flowRowLabel, { color: c.text }]}>{label}</Text>
+      <Text style={[styles.flowShare, { color: c.textSecondary }]}>
+        {share > 0 ? `${Math.round(share)}%` : "—"}
+      </Text>
+      <AnimatedAmount
+        value={amount}
+        style={[styles.flowAmount, { color: c.text }]}
       />
-      <Text style={styles.netLabel}>Net Balance</Text>
-      <AnimatedAmount value={net} style={styles.netValue} />
     </View>
   );
 }
 
-const chipShadow = {
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.12,
-  shadowRadius: 4,
-  elevation: 3,
-};
-const cardShadow = {
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.08,
-  shadowRadius: 6,
-  elevation: 2,
-};
+function FlowCard({
+  totalIn,
+  totalOut,
+  net,
+}: {
+  totalIn: number;
+  totalOut: number;
+  net: number;
+}) {
+  const c = useTheme();
+  const flow = totalIn + totalOut;
+  const inShare = flow > 0 ? (totalIn / flow) * 100 : 0;
+  const outShare = flow > 0 ? (totalOut / flow) * 100 : 0;
+  const netColor = net > 0 ? c.cashInText : net < 0 ? c.cashOutText : c.text;
+  const trendIcon =
+    net > 0 ? "trending-up" : net < 0 ? "trending-down" : "remove";
+
+  return (
+    <View
+      style={[
+        styles.flowCard,
+        {
+          backgroundColor: c.card,
+          borderColor: c.border,
+          borderLeftColor: netColor,
+        },
+      ]}
+    >
+      <View style={styles.flowHead}>
+        <Text style={[styles.flowLabel, { color: c.textSecondary }]}>
+          NET BALANCE
+        </Text>
+        <Ionicons name={trendIcon} size={16} color={netColor} />
+      </View>
+      <AnimatedAmount value={net} style={[styles.flowNet, { color: netColor }]} />
+
+      <View style={[styles.flowBar, { backgroundColor: c.track }]}>
+        <View
+          style={[
+            styles.flowFill,
+            { width: `${inShare}%`, backgroundColor: c.cashInText },
+          ]}
+        />
+        <View
+          style={[
+            styles.flowFill,
+            { width: `${outShare}%`, backgroundColor: c.cashOutText },
+          ]}
+        />
+      </View>
+
+      <FlowRow
+        color={c.cashInText}
+        label="Cash In"
+        amount={totalIn}
+        share={inShare}
+      />
+      <FlowRow
+        color={c.cashOutText}
+        label="Cash Out"
+        amount={totalOut}
+        share={outShare}
+      />
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  hPad: { paddingHorizontal: 20 },
+  hPad: { paddingHorizontal: 16 },
   title: {
-    fontSize: 26,
-    fontWeight: "800",
-    letterSpacing: -0.5,
+    fontSize: 20,
+    fontFamily: "Manrope_700Bold",
+    fontWeight: "700",
+    letterSpacing: -0.3,
     marginBottom: 12,
   },
   // flexGrow:0 stops the horizontal bar from expanding vertically (on Fabric a
@@ -624,14 +628,24 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 4,
     paddingRight: 8,
-    paddingLeft: 20,
+    paddingLeft: 16,
     alignItems: "center",
   },
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    minHeight: 34,
     borderRadius: 20,
     borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipText: {
+    fontFamily: "Manrope_600SemiBold",
+    fontWeight: "600",
+    fontSize: 13,
+    lineHeight: 17,
+    textAlign: "center",
+    includeFontPadding: false,
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyWrap: {
@@ -649,21 +663,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyText: { fontSize: 14, textAlign: "center" },
-  stickyToggle: { paddingHorizontal: 20, paddingTop: 2, paddingBottom: 8 },
+  emptyText: { fontFamily: 'Manrope_500Medium', fontSize: 14, textAlign: "center" },
+  stickyToggle: { paddingHorizontal: 16, paddingTop: 2, paddingBottom: 8 },
   modeToggle: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
+    borderWidth: 1,
     borderRadius: 12,
     padding: 3,
     height: 40,
     marginTop: 6,
     marginBottom: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   modePill: {
     position: "absolute",
@@ -671,44 +680,42 @@ const styles = StyleSheet.create({
     top: 3,
     height: 34,
     borderRadius: 10,
-    backgroundColor: "#2563eb",
   },
   modeHalf: { flex: 1, alignItems: "center", justifyContent: "center" },
   scrollContent: { paddingBottom: 40 },
   categorySection: { paddingTop: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontFamily: "Manrope_600SemiBold", fontWeight: "600", marginBottom: 12 },
   catRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderRadius: 12,
+    borderRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 8,
   },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  catName: { flex: 1, fontSize: 15, fontWeight: "700" },
-  catPct: { fontSize: 13 },
-  catAmt: { fontSize: 14, fontWeight: "800" },
+  catName: { flex: 1, fontSize: 15, fontFamily: "Manrope_700Bold", fontWeight: "700" },
+  catPct: { fontFamily: 'Manrope_500Medium', fontSize: 13 },
+  catAmt: { fontSize: 14, fontFamily: "Manrope_800ExtraBold", fontWeight: "800" },
   detailCard: {
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderLeftWidth: 4,
     padding: 14,
     marginTop: 8,
-    ...cardShadow,
   },
   detailHead: { flexDirection: "row", alignItems: "center", gap: 10 },
   detailIcon: {
     width: 38,
     height: 38,
-    borderRadius: 11,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
-  detailName: { fontSize: 17, fontWeight: "800" },
-  detailMeta: { fontSize: 12, marginTop: 2 },
-  detailAmount: { fontSize: 17, fontWeight: "800" },
+  detailName: { fontSize: 17, fontFamily: "Manrope_800ExtraBold", fontWeight: "800" },
+  detailMeta: { fontFamily: 'Manrope_500Medium', fontSize: 12, marginTop: 2 },
+  detailAmount: { fontSize: 17, fontFamily: "Manrope_800ExtraBold", fontWeight: "800" },
   detailDivider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
   detailRow: {
     flexDirection: "row",
@@ -716,33 +723,69 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 5,
   },
-  detailDate: { fontSize: 13, width: 52 },
-  detailNote: { flex: 1, fontSize: 13, fontWeight: "600" },
-  detailRowAmt: { fontSize: 13, fontWeight: "700" },
+  detailDate: { fontFamily: 'Manrope_500Medium', fontSize: 13, width: 52 },
+  detailNote: { flex: 1, fontSize: 13, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
+  detailRowAmt: { fontSize: 13, fontFamily: "Manrope_700Bold", fontWeight: "700" },
   detailScroll: { maxHeight: 300 },
-  cardsRow: { flexDirection: "row", gap: 12, marginTop: 18 },
-  statCard: { flex: 1, borderRadius: 16, padding: 14, gap: 6 },
-  statLabel: { fontSize: 13, fontWeight: "600" },
-  statValue: { fontSize: 18, fontWeight: "800" },
-  netCard: {
-    borderRadius: 18,
-    padding: 18,
-    gap: 6,
-    marginTop: 12,
-    overflow: "hidden",
+  flowCard: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderLeftWidth: 4,
+    padding: 16,
+    marginTop: 18,
   },
-  netLabel: { fontSize: 14, fontWeight: "600", color: "#fff", opacity: 0.9 },
-  netValue: {
-    fontSize: 28,
+  flowHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  flowLabel: {
+    fontSize: 11,
+    fontFamily: "Manrope_700Bold",
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  flowNet: {
+    fontSize: 26,
+    fontFamily: "Manrope_800ExtraBold",
     fontWeight: "800",
-    color: "#fff",
     letterSpacing: -0.5,
+    marginTop: 2,
   },
-  shine: {
-    position: "absolute",
-    top: -20,
-    bottom: -20,
-    width: 60,
-    backgroundColor: "rgba(255,255,255,0.25)",
+  flowBar: {
+    flexDirection: "row",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  flowFill: { height: 8 },
+  flowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 5,
+  },
+  flowDot: { width: 8, height: 8, borderRadius: 4 },
+  flowRowLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Manrope_600SemiBold",
+    fontWeight: "600",
+  },
+  flowShare: {
+    fontSize: 12,
+    fontFamily: "Manrope_500Medium",
+    fontWeight: "500",
+    minWidth: 34,
+    textAlign: "right",
+  },
+  flowAmount: {
+    fontSize: 14,
+    fontFamily: "Manrope_700Bold",
+    fontWeight: "700",
+    minWidth: 88,
+    textAlign: "right",
   },
 });

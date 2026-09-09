@@ -50,14 +50,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Manrope_600SemiBold', fontWeight: '600',
     marginLeft: 4,
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 6,
     paddingHorizontal: 14,
     height: 52,
   },
@@ -67,12 +67,12 @@ const styles = StyleSheet.create({
   rightIcon: {
     marginLeft: 8,
   },
-  input: {
+  input: { fontFamily: 'Manrope_500Medium',
     flex: 1,
     fontSize: 16,
     height: '100%',
   },
-  error: {
+  error: { fontFamily: 'Manrope_500Medium',
     fontSize: 12,
     marginLeft: 4,
   },

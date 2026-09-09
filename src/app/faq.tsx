@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ScreenBackground } from '@/components/ui/screen-background';
 import { useTheme } from '@/hooks/use-theme';
 
 const FAQS = [
@@ -34,7 +35,7 @@ export default function FaqScreen() {
   const router = useRouter();
 
   return (
-    <View style={[styles.screen, { backgroundColor: c.background, paddingTop: insets.top }]}>
+    <ScreenBackground style={{ paddingTop: insets.top }}>
       <View style={[styles.header, { borderColor: c.border }]}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
           <Ionicons name="arrow-back" size={24} color={c.text} />
@@ -54,12 +55,11 @@ export default function FaqScreen() {
           </View>
         ))}
       </ScrollView>
-    </View>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,10 +68,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   back: { padding: 4, width: 28 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 17, fontFamily: 'Manrope_700Bold', fontWeight: '700', textAlign: 'center' },
   content: { padding: 16, gap: 12 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 8 },
+  card: { borderRadius: 6, borderWidth: 1, padding: 14, gap: 8 },
   qRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  q: { flex: 1, fontSize: 15, fontWeight: '700' },
-  a: { fontSize: 14, lineHeight: 20 },
+  q: { flex: 1, fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
+  a: { fontFamily: 'Manrope_500Medium', fontSize: 14, lineHeight: 20 },
 });

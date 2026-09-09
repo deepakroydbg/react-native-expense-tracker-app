@@ -68,9 +68,9 @@ export function BookMenuSheet({
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  subtitle: { flex: 1, fontSize: 14, fontWeight: '600' },
+  subtitle: { flex: 1, fontSize: 14, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
   close: { padding: 2 },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16 },
-  label: { flex: 1, fontSize: 16, fontWeight: '600' },
+  label: { flex: 1, fontSize: 16, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
 });

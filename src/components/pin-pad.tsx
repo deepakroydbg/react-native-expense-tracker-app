@@ -113,5 +113,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyText: { fontSize: 28, fontWeight: '600' },
+  keyText: { fontSize: 28, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
 });

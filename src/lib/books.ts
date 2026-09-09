@@ -25,6 +25,10 @@ export function getCachedBooks(): BookWithBalance[] | undefined {
   return booksCache;
 }
 
+export function resetBooksCache(): void {
+  booksCache = undefined;
+}
+
 /** Preset palette cycled across books (by list order) for visual variety. */
 export const BOOK_COLORS = ['#2563eb', '#16a34a', '#7c3aed', '#ea580c', '#0d9488', '#db2777'];
 

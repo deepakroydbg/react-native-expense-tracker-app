@@ -179,7 +179,7 @@ function OptionRow({
 }
 
 const styles = StyleSheet.create({
-  bookName: { fontSize: 14, fontWeight: '600', marginTop: -8, marginBottom: 6 },
+  bookName: { fontSize: 14, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', marginTop: -8, marginBottom: 6 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,8 +189,8 @@ const styles = StyleSheet.create({
   },
   iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1 },
-  title: { fontSize: 16, fontWeight: '600' },
-  subtitle: { fontSize: 12, marginTop: 2 },
+  title: { fontSize: 16, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
+  subtitle: { fontFamily: 'Manrope_500Medium', fontSize: 12, marginTop: 2 },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16 },
   cancel: { marginTop: 12 },
 });

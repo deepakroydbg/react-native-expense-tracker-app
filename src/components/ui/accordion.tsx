@@ -40,8 +40,8 @@ export function Accordion({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
+  card: { borderRadius: 6, borderWidth: 1, overflow: 'hidden' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 16 },
-  title: { flex: 1, fontSize: 15, fontWeight: '700' },
+  title: { flex: 1, fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
   body: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingBottom: 6 },
 });

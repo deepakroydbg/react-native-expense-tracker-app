@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -83,5 +83,5 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 1000,
   },
-  text: { color: '#fff', fontSize: 15, fontWeight: '700', flex: 1 },
+  text: { color: '#fff', fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700', flex: 1 },
 });

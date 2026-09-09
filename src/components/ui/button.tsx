@@ -65,7 +65,7 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     height: 52,
-    borderRadius: 14,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -75,6 +75,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Manrope_700Bold', fontWeight: '700',
   },
 });

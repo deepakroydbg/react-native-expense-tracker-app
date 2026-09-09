@@ -9,8 +9,11 @@ const PIN_KEY = 'app_pin';
 const ENABLED_KEY = 'app_lock_enabled';
 const ATTEMPTS_KEY = 'app_lock_attempts';
 const COOLDOWN_KEY = 'app_lock_cooldown_until';
+const LAST_FAIL_KEY = 'app_lock_last_fail';
 
 export const PIN_LENGTH = 4;
+
+export const ATTEMPT_WINDOW_MS = 3600000;
 
 const BACKGROUND_GRACE_MS = 60000;
 
@@ -50,16 +53,31 @@ export const EMPTY_FAIL_STATE: LockFailState = { attempts: 0, cooldownUntil: nul
 
 export async function readFailState(): Promise<LockFailState> {
   try {
-    const [rawAttempts, rawCooldown] = await Promise.all([
+    const [rawAttempts, rawCooldown, rawLastFail] = await Promise.all([
       SecureStore.getItemAsync(ATTEMPTS_KEY),
       SecureStore.getItemAsync(COOLDOWN_KEY),
+      SecureStore.getItemAsync(LAST_FAIL_KEY),
     ]);
     const attempts = Number(rawAttempts);
     const cooldown = Number(rawCooldown);
-    return {
+    const lastFail = Number(rawLastFail);
+
+    const state: LockFailState = {
       attempts: Number.isFinite(attempts) && attempts > 0 ? attempts : 0,
       cooldownUntil: Number.isFinite(cooldown) && cooldown > 0 ? cooldown : null,
     };
+
+    const now = Date.now();
+    const coolingDown = !!state.cooldownUntil && state.cooldownUntil > now;
+    const stale =
+      Number.isFinite(lastFail) && lastFail > 0 && now - lastFail > ATTEMPT_WINDOW_MS;
+
+    if (state.attempts > 0 && stale && !coolingDown) {
+      void clearFailState();
+      return EMPTY_FAIL_STATE;
+    }
+
+    return state;
   } catch {
     return EMPTY_FAIL_STATE;
   }
@@ -68,6 +86,7 @@ export async function readFailState(): Promise<LockFailState> {
 export async function writeFailState(state: LockFailState): Promise<void> {
   try {
     await SecureStore.setItemAsync(ATTEMPTS_KEY, String(state.attempts));
+    await SecureStore.setItemAsync(LAST_FAIL_KEY, String(Date.now()));
     if (state.cooldownUntil) {
       await SecureStore.setItemAsync(COOLDOWN_KEY, String(state.cooldownUntil));
     } else {
@@ -83,6 +102,7 @@ export async function clearFailState(): Promise<void> {
     await Promise.all([
       SecureStore.deleteItemAsync(ATTEMPTS_KEY),
       SecureStore.deleteItemAsync(COOLDOWN_KEY),
+      SecureStore.deleteItemAsync(LAST_FAIL_KEY),
     ]);
   } catch {
     // ignore
@@ -161,17 +181,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, []);
 
-  const hadSession = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (authLoading) return;
-    const has = !!session;
-    if (hadSession.current === false && has) {
-      backgroundedAt.current = null;
-      setLocked(false);
-    }
-    hadSession.current = has;
-  }, [session, authLoading]);
-
   const enableLock = useCallback(async (pin: string) => {
     await SecureStore.setItemAsync(PIN_KEY, pin);
     await SecureStore.setItemAsync(ENABLED_KEY, 'true');
@@ -193,6 +202,19 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
     setEnabled(false);
     setLocked(false);
   }, []);
+
+  const hadSession = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (authLoading || !ready) return;
+    const has = !!session;
+    if (!has) {
+      if (enabledRef.current) void disableLock();
+    } else if (hadSession.current === false) {
+      backgroundedAt.current = null;
+      setLocked(false);
+    }
+    hadSession.current = has;
+  }, [session, authLoading, ready, disableLock]);
 
   const verifyPin = useCallback(async (pin: string) => {
     try {

@@ -103,5 +103,5 @@ export function AddBookSheet({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12, marginTop: 16 },
   flex: { flex: 1 },
-  hint: { fontSize: 12, marginTop: 12, textAlign: 'center' },
+  hint: { fontFamily: 'Manrope_500Medium', fontSize: 12, marginTop: 12, textAlign: 'center' },
 });

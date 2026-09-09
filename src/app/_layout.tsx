@@ -11,6 +11,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import {
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/manrope';
 
 import { AnimatedSplash } from '@/components/animated-splash';
 import { AppLockGate } from '@/components/app-lock-gate';
@@ -29,6 +36,15 @@ GoogleSignin.configure({
 
 export default function RootLayout() {
   const [splashDone, setSplashDone] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  });
+
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

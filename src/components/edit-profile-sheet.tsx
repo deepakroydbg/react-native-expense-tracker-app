@@ -95,7 +95,7 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
   };
 
   const saveButton = (
-    <Button title="Save Changes" onPress={onSave} loading={saving} style={{ height: 52, borderRadius: 12 }} />
+    <Button title="Save Changes" onPress={onSave} loading={saving} style={{ height: 52, borderRadius: 6}} />
   );
 
   return (
@@ -115,7 +115,7 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
       </View>
 
       {/* Name */}
-      <Text style={[styles.label, { color: '#666' }]}>Full Name</Text>
+      <Text style={[styles.label, { color: c.textSecondary }]}>Full Name</Text>
       <TextInput
         value={name}
         onChangeText={(t) => {
@@ -124,14 +124,14 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
         }}
         placeholder="Your name"
         placeholderTextColor={c.textSecondary}
-        style={[styles.input, { backgroundColor: c.inputBackground, borderColor: error ? c.danger : '#e5e7eb', color: c.text }]}
+        style={[styles.input, { backgroundColor: c.inputBackground, borderColor: error ? c.danger : c.border, color: c.text }]}
       />
       {error ? <Text style={[styles.err, { color: c.danger }]}>{error}</Text> : null}
 
       {/* Mobile Number (optional) */}
       <View style={styles.labelRow}>
-        <Ionicons name="call-outline" size={14} color="#666" />
-        <Text style={[styles.label, { color: '#666', marginTop: 0 }]}>Mobile Number</Text>
+        <Ionicons name="call-outline" size={14} color={c.textSecondary} />
+        <Text style={[styles.label, { color: c.textSecondary, marginTop: 0 }]}>Mobile Number</Text>
       </View>
       <TextInput
         value={phone}
@@ -143,15 +143,15 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
         placeholderTextColor={c.textSecondary}
         keyboardType="numeric"
         maxLength={10}
-        style={[styles.input, { backgroundColor: c.inputBackground, borderColor: phoneError ? c.danger : '#e5e7eb', color: c.text }]}
+        style={[styles.input, { backgroundColor: c.inputBackground, borderColor: phoneError ? c.danger : c.border, color: c.text }]}
       />
       {phoneError ? <Text style={[styles.err, { color: c.danger }]}>{phoneError}</Text> : null}
 
       {/* DOB */}
-      <Text style={[styles.label, { color: '#666' }]}>Date of Birth</Text>
+      <Text style={[styles.label, { color: c.textSecondary }]}>Date of Birth</Text>
       <Pressable
         onPress={() => setShowPicker(true)}
-        style={[styles.input, styles.dobBtn, { backgroundColor: c.inputBackground, borderColor: '#e5e7eb' }]}>
+        style={[styles.input, styles.dobBtn, { backgroundColor: c.inputBackground, borderColor: c.border }]}>
         <Ionicons name="calendar-outline" size={18} color={c.textSecondary} />
         <Text style={[styles.dobText, { color: dob ? c.text : c.textSecondary }]}>
           {dob ? shortDate(dob) : 'DD / MM / YYYY'}
@@ -176,7 +176,7 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
       )}
 
       {/* Gender */}
-      <Text style={[styles.label, { color: '#666' }]}>Gender</Text>
+      <Text style={[styles.label, { color: c.textSecondary }]}>Gender</Text>
       <View style={styles.genderRow}>
         {GENDERS.map((g) => {
           const active = sex === g;
@@ -187,10 +187,10 @@ export function EditProfileSheet({ visible, onClose }: { visible: boolean; onClo
               style={[
                 styles.genderPill,
                 active
-                  ? { backgroundColor: '#2563eb', borderColor: '#2563eb' }
-                  : { backgroundColor: c.inputBackground, borderColor: '#e5e7eb' },
+                  ? { backgroundColor: c.primary, borderColor: c.primary }
+                  : { backgroundColor: c.inputBackground, borderColor: c.border },
               ]}>
-              <Text style={{ color: active ? '#fff' : c.text, fontWeight: '600', fontSize: 13 }}>{g}</Text>
+              <Text style={{ color: active ? c.onPrimary : c.text, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', fontSize: 13 }}>{g}</Text>
             </Pressable>
           );
         })}
@@ -212,19 +212,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontSize: 13, fontWeight: '600', marginTop: 14, marginBottom: 6 },
+  label: { fontSize: 13, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', marginTop: 14, marginBottom: 6 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, marginBottom: 6 },
-  input: {
+  input: { fontFamily: 'Manrope_500Medium',
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 6,
     paddingHorizontal: 14,
     height: 50,
     fontSize: 16,
     justifyContent: 'center',
   },
-  err: { fontSize: 12, marginTop: 4 },
+  err: { fontFamily: 'Manrope_500Medium', fontSize: 12, marginTop: 4 },
   dobBtn: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dobText: { fontSize: 16, fontWeight: '500' },
+  dobText: { fontSize: 16, fontFamily: 'Manrope_500Medium', fontWeight: '500' },
   genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   genderPill: { height: 38, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 20, borderWidth: 1 },
 });

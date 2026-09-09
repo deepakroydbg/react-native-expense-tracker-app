@@ -4,6 +4,7 @@ import { Alert, AppState, Image, Pressable, StyleSheet, Text, View } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PinDots, PinKeypad } from '@/components/pin-pad';
+import { ScreenBackground } from '@/components/ui/screen-background';
 import { useTheme } from '@/hooks/use-theme';
 import {
   authenticateBiometric,
@@ -14,15 +15,12 @@ import {
   writeFailState,
 } from '@/lib/app-lock';
 import { useAuth } from '@/lib/auth-context';
+import { COOLDOWN_AFTER, COOLDOWN_MS, SIGN_OUT_AFTER } from '@/lib/pin-attempts';
 
 const LOGO = require('@/assets/images/icon.png');
 
-const COOLDOWN_AFTER = 3;
-const SIGN_OUT_AFTER = 5;
-const COOLDOWN_MS = 30000;
-
 const LOCKOUT_MSG = 'Too many attempts.';
-const LAST_WARNING = 'Last attempt — one more wrong PIN signs you out.';
+const LAST_WARNING = 'Last attempt before sign out.';
 
 export function LockScreen() {
   const c = useTheme();
@@ -120,7 +118,7 @@ export function LockScreen() {
   const forceSignOut = useCallback(() => {
     Alert.alert(
       'Signed out for security',
-      'Too many failed attempts. You will be signed out for security.',
+      'Too many failed attempts.',
       [{ text: 'OK', onPress: () => void resetAndSignOut() }],
       { cancelable: false }
     );
@@ -220,10 +218,10 @@ export function LockScreen() {
   const showLastWarning = attempts === SIGN_OUT_AFTER - 1 && remaining > 0;
 
   return (
-    <View
+    <ScreenBackground
       style={[
         styles.screen,
-        { backgroundColor: c.background, paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 },
+        { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 },
       ]}>
       <View style={styles.brand}>
         <Image source={LOGO} style={styles.logo} resizeMode="contain" />
@@ -310,21 +308,21 @@ export function LockScreen() {
         style={({ pressed }) => [styles.forgot, pressed && { opacity: 0.6 }]}>
         <Text style={[styles.forgotText, { color: c.textSecondary }]}>Forgot PIN? Sign out</Text>
       </Pressable>
-    </View>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, alignItems: 'center', paddingHorizontal: 24 },
-  brand: { alignItems: 'center', gap: 12 },
-  logo: { width: 80, height: 80, borderRadius: 18 },
-  appName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  screen: { alignItems: 'center', paddingHorizontal: 24 },
+  brand: { alignItems: 'center', gap: 10, marginBottom: 14 },
+  logo: { width: 72, height: 72, borderRadius: 16 },
+  appName: { fontSize: 22, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', letterSpacing: -0.3 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%' },
-  prompt: { fontSize: 15, fontWeight: '600' },
-  dotsWrap: { marginTop: 22 },
-  statusWrap: { minHeight: 46, justifyContent: 'center', marginTop: 12, marginBottom: 10 },
-  status: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  warning: { fontSize: 12, fontWeight: '700', textAlign: 'center', marginTop: 4 },
+  prompt: { fontSize: 15, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
+  dotsWrap: { marginTop: 16 },
+  statusWrap: { minHeight: 44, justifyContent: 'center', marginTop: 8, marginBottom: 6, paddingHorizontal: 8 },
+  status: { fontSize: 13, fontFamily: 'Manrope_600SemiBold', fontWeight: '600', textAlign: 'center' },
+  warning: { fontSize: 12, fontFamily: 'Manrope_700Bold', fontWeight: '700', textAlign: 'center', marginTop: 4 },
   fingerprint: {
     width: 128,
     height: 128,
@@ -332,8 +330,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 24, padding: 6 },
-  link: { fontSize: 15, fontWeight: '700' },
-  forgot: { paddingVertical: 10 },
-  forgotText: { fontSize: 14, fontWeight: '600' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, padding: 6 },
+  link: { fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
+  forgot: { paddingVertical: 10, marginTop: 8 },
+  forgotText: { fontSize: 14, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
 });

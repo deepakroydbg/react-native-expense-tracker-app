@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   logo: { width: 130, height: 130, borderRadius: 28 },
-  title: { fontSize: 28, fontWeight: '700', color: '#1e3a5f', marginTop: 24 },
-  tagline: { fontSize: 14, fontStyle: 'italic', color: '#64748b', marginTop: 8 },
+  title: { fontSize: 28, fontFamily: 'Manrope_700Bold', fontWeight: '700', color: '#1e3a5f', marginTop: 24 },
+  tagline: { fontFamily: 'Manrope_500Medium', fontSize: 14, fontStyle: 'italic', color: '#64748b', marginTop: 8 },
 });

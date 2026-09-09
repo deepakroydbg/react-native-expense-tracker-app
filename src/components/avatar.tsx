@@ -32,7 +32,7 @@ export function Avatar({
         styles.fallback,
         { width: size, height: size, borderRadius: radius, backgroundColor: c.primary },
       ]}>
-      <Text style={{ color: c.onPrimary, fontWeight: '800', fontSize: size * 0.4 }}>{initials}</Text>
+      <Text style={{ color: c.onPrimary, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800', fontSize: size * 0.4 }}>{initials}</Text>
     </View>
   );
 }

@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { EditProfileSheet } from '@/components/edit-profile-sheet';
 import { Accordion } from '@/components/ui/accordion';
+import { ScreenBackground } from '@/components/ui/screen-background';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppLock } from '@/lib/app-lock';
@@ -42,9 +43,10 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signOut } = useAuth();
-  const { mode, setMode } = useThemeMode();
+  const { mode, setMode, scheme } = useThemeMode();
   const { avatarUrl, fullName, email, initials } = useProfile();
   const { enabled: appLockOn } = useAppLock();
+  const switchTrackOff = scheme === 'dark' ? c.border : '#C3C9D2';
 
   const [editOpen, setEditOpen] = useState(false);
   const [reminder, setReminder] = useState(false);
@@ -103,7 +105,7 @@ export default function SettingsScreen() {
     ).catch(() => Alert.alert('No email app', 'Could not open your email app.'));
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background, paddingTop: insets.top + 12 }}>
+    <ScreenBackground style={{ paddingTop: insets.top + 12 }}>
       {/* FIXED: title + profile card */}
       <View style={styles.fixedTop}>
         <Text style={[styles.title, { color: c.text }]}>Settings</Text>
@@ -134,8 +136,9 @@ export default function SettingsScreen() {
           <Switch
             value={reminder}
             onValueChange={toggleReminder}
-            trackColor={{ true: c.primary }}
+            trackColor={{ false: switchTrackOff, true: c.primary }}
             thumbColor="#fff"
+            ios_backgroundColor={switchTrackOff}
           />
         </View>
         {reminder && (
@@ -172,27 +175,25 @@ export default function SettingsScreen() {
           <Ionicons name="chevron-forward" size={18} color={c.textSecondary} />
         </Pressable>
         <View style={[styles.rowDivider, { backgroundColor: c.border }]} />
-        <View style={[styles.row, { alignItems: 'flex-start' }]}>
-          <Ionicons name="moon-outline" size={20} color={c.textSecondary} style={{ marginTop: 6 }} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.rowLabel, { color: c.text, marginBottom: 8 }]}>Theme</Text>
-            <View style={styles.segment}>
-              {THEME_OPTIONS.map((opt) => {
-                const active = mode === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => setMode(opt.value)}
-                    style={[styles.segmentItem, { backgroundColor: active ? c.primary : c.backgroundElement }]}>
-                    <Ionicons name={opt.icon} size={15} color={active ? c.onPrimary : c.textSecondary} />
-                    <Text style={[styles.segmentText, { color: active ? c.onPrimary : c.textSecondary }]}>
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+        <View style={styles.row}>
+          <Ionicons name="moon-outline" size={20} color={c.textSecondary} />
+          <Text style={[styles.rowLabel, { color: c.text }]}>Theme</Text>
+        </View>
+        <View style={styles.segment}>
+          {THEME_OPTIONS.map((opt) => {
+            const active = mode === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => setMode(opt.value)}
+                style={[styles.segmentItem, { backgroundColor: active ? c.primary : c.backgroundElement }]}>
+                <Ionicons name={opt.icon} size={15} color={active ? c.onPrimary : c.textSecondary} />
+                <Text style={[styles.segmentText, { color: active ? c.onPrimary : c.textSecondary }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
@@ -241,7 +242,7 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <EditProfileSheet visible={editOpen} onClose={() => setEditOpen(false)} />
-    </View>
+    </ScreenBackground>
   );
 }
 
@@ -272,14 +273,14 @@ function NavRow({ label, onPress, last }: { label: string; onPress: () => void; 
 }
 
 const styles = StyleSheet.create({
-  fixedTop: { paddingHorizontal: 20 },
+  fixedTop: { paddingHorizontal: 16 },
   topDivider: { height: StyleSheet.hairlineWidth, marginTop: 14 },
-  content: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 120 },
-  title: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 16 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 14 },
+  content: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 120 },
+  title: { fontSize: 20, fontFamily: 'Manrope_700Bold', fontWeight: '700', letterSpacing: -0.3, marginBottom: 16 },
+  sectionLabel: { fontSize: 12, fontFamily: 'Manrope_700Bold', fontWeight: '700', letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
+  card: { borderRadius: 6, borderWidth: 1, padding: 14 },
   navCard: {
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,13 +288,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-  navLabel: { flex: 1, fontSize: 15, fontWeight: '700' },
+  navLabel: { flex: 1, fontSize: 15, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     minHeight: 64,
-    borderRadius: 12,
+    borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 12,
     shadowColor: '#000',
@@ -302,17 +303,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  name: { fontSize: 16, fontWeight: '800' },
-  email: { fontSize: 14, marginTop: 2 },
+  name: { fontSize: 16, fontFamily: 'Manrope_800ExtraBold', fontWeight: '800' },
+  email: { fontFamily: 'Manrope_500Medium', fontSize: 14, marginTop: 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4, minHeight: 36 },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
-  rowValue: { fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
+  rowLabel: { flex: 1, fontSize: 15, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
+  rowValue: { fontSize: 14, fontFamily: 'Manrope_700Bold', fontWeight: '700', letterSpacing: 0.3 },
   reminderTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 10, paddingLeft: 2 },
-  reminderTimeLabel: { flex: 1, fontSize: 14 },
-  timePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
-  timePillText: { fontSize: 14, fontWeight: '700' },
+  reminderTimeLabel: { fontFamily: 'Manrope_500Medium', flex: 1, fontSize: 14 },
+  timePill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 4},
+  timePillText: { fontSize: 14, fontFamily: 'Manrope_700Bold', fontWeight: '700' },
   rowDivider: { height: StyleSheet.hairlineWidth, marginVertical: 10 },
-  segment: { flexDirection: 'row', gap: 6 },
+  segment: { flexDirection: 'row', gap: 6, marginTop: 10 },
   segmentItem: {
     flex: 1,
     flexDirection: 'row',
@@ -322,8 +323,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  segmentText: { fontSize: 13, fontWeight: '600' },
+  segmentText: { fontSize: 13, fontFamily: 'Manrope_600SemiBold', fontWeight: '600' },
   subRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
-  subLabel: { fontSize: 15, fontWeight: '500' },
-  subValue: { fontSize: 14 },
+  subLabel: { fontSize: 15, fontFamily: 'Manrope_500Medium', fontWeight: '500' },
+  subValue: { fontFamily: 'Manrope_500Medium', fontSize: 14 },
 });
