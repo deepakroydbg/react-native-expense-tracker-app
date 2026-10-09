@@ -532,9 +532,14 @@ export default function BookDetailScreen() {
         bookId={bookId}
         initialType={entrySheet.type}
         editing={entrySheet.editing}
-        onSaved={() => {
+        onSaved={(addedCount) => {
           setEntrySheet((s) => ({ ...s, open: false }));
-          toast.show("Entry saved", "success");
+          toast.show(
+            addedCount
+              ? `${addedCount} ${addedCount === 1 ? "entry" : "entries"} added`
+              : "Entry saved",
+            "success",
+          );
           load();
         }}
       />

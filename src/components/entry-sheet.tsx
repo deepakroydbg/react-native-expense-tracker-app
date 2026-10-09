@@ -4,29 +4,57 @@ import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  Keyboard,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
+import {
+  BulkEntryRow,
+  bulkRowStatus,
+  initialBulkRows,
+  MAX_BULK_ROWS,
+  newBulkRow,
+  parseAmount,
+  type BulkRow,
+} from "@/components/bulk-entry-row";
 import { CategorySheet } from "@/components/category-sheet";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 import { touchBook } from "@/lib/books";
-import { deleteCategory, useCategories, type Category } from "@/lib/categories";
-import { formatTime, shortDate, toISODate } from "@/lib/format";
+import {
+  deleteCategory,
+  OTHER_CATEGORY,
+  useCategories,
+  useCategoryLookup,
+  type Category,
+} from "@/lib/categories";
+import { formatCurrency, formatTime, shortDate, toISODate } from "@/lib/format";
 import {
   createTransaction,
+  createTransactions,
   PAYMENT_METHODS,
   updateTransaction,
   type Transaction,
   type TxType,
 } from "@/lib/transactions";
+
+type EntryMode = "single" | "multiple";
+
+function saveErrorMessage(e: any): string {
+  const msg = String(e?.message ?? "").toLowerCase();
+  return msg.includes("network") || msg.includes("fetch")
+    ? "No internet connection. Please try again."
+    : "Could not save. Please try again.";
+}
 
 export function EntrySheet({
   visible,
@@ -41,11 +69,15 @@ export function EntrySheet({
   bookId: string;
   initialType: TxType;
   editing?: Transaction | null;
-  onSaved: () => void;
+  onSaved: (addedCount?: number) => void;
 }) {
   const c = useTheme();
   const amountRef = useRef<TextInput>(null);
   const categories = useCategories();
+  const categoryOf = useCategoryLookup();
+  const scrollRef = useRef<ScrollView>(null);
+  const rowsY = useRef(0);
+  const rowYs = useRef(new Map<number, number>());
 
   const [type, setType] = useState<TxType>(initialType);
   const [amount, setAmount] = useState("");
@@ -53,6 +85,14 @@ export function EntrySheet({
   const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
   const [category, setCategory] = useState("Other");
   const [note, setNote] = useState("");
+
+  const [mode, setMode] = useState<EntryMode>("single");
+  const [rows, setRows] = useState<BulkRow[]>(initialBulkRows);
+  const [showRowErrors, setShowRowErrors] = useState(false);
+  const [focusRowId, setFocusRowId] = useState<number | null>(null);
+  const [amountFocused, setAmountFocused] = useState(false);
+  const [noteFocused, setNoteFocused] = useState(false);
+  const [pickerRowId, setPickerRowId] = useState<number | null>(null);
 
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
@@ -85,6 +125,11 @@ export function EntrySheet({
     setShowTime(false);
     setCategorySheet({ open: false, editing: null });
     setSaving(false);
+    setMode("single");
+    setRows(initialBulkRows());
+    setShowRowErrors(false);
+    setFocusRowId(null);
+    setPickerRowId(null);
     if (editing) {
       setType(editing.type);
       setAmount(String(editing.amount));
@@ -106,6 +151,60 @@ export function EntrySheet({
 
   const isCredit = type === "credit";
   const accent = isCredit ? "#16a34a" : "#dc2626";
+  const isMultiple = !editing && mode === "multiple";
+
+  const validRows = rows.filter((r) => bulkRowStatus(r) === "valid");
+  const validCount = validRows.length;
+  const validTotal = validRows.reduce((sum, r) => sum + parseAmount(r.amount), 0);
+  const entriesLabel = `${validCount} ${validCount === 1 ? "entry" : "entries"}`;
+  const atRowCap = rows.length >= MAX_BULK_ROWS;
+  const pickerRow = rows.find((r) => r.id === pickerRowId) ?? null;
+
+  const switchMode = (next: EntryMode) => {
+    if (next === mode) return;
+    Keyboard.dismiss();
+    setError(null);
+    setShowDate(false);
+    setShowTime(false);
+    setAmountFocused(false);
+    setNoteFocused(false);
+    setMode(next);
+  };
+
+  const updateRow = (id: number, patch: Partial<BulkRow>) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+
+  const scrollToRow = (id: number) => {
+    const y = rowYs.current.get(id);
+    if (y === undefined) return;
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, rowsY.current + y - 12),
+      animated: true,
+    });
+  };
+
+  const addRow = () => {
+    if (atRowCap) return;
+    const row = newBulkRow();
+    setRows([...rows, row]);
+    setFocusRowId(row.id);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+  };
+
+  const removeRow = (id: number) => {
+    rowYs.current.delete(id);
+    setRows(rows.filter((r) => r.id !== id));
+  };
+
+  const openCategoryPicker = (id: number) => {
+    Keyboard.dismiss();
+    setPickerRowId(id);
+  };
+
+  const onRowFocus = (id: number) => {
+    setTimeout(() => scrollToRow(id), 350);
+  };
 
   const confirmDeleteCategory = (cat: Category) => {
     Alert.alert(
@@ -120,6 +219,11 @@ export function EntrySheet({
             try {
               await deleteCategory(cat.id!);
               if (category === cat.name) setCategory("Other");
+              setRows((prev) =>
+                prev.map((r) =>
+                  r.category === cat.name ? { ...r, category: "Other" } : r,
+                ),
+              );
             } catch (e) {
               console.error("Delete category failed:", e);
               Alert.alert(
@@ -135,7 +239,7 @@ export function EntrySheet({
 
   const onSave = async () => {
     setError(null);
-    const value = parseFloat(amount.replace(/,/g, ""));
+    const value = parseAmount(amount);
     if (!amount || isNaN(value) || value <= 0) {
       setError("Please enter an amount greater than 0.");
       return;
@@ -157,17 +261,156 @@ export function EntrySheet({
       await touchBook(bookId);
       onSaved();
     } catch (e: any) {
-      const msg = String(e?.message ?? "").toLowerCase();
       console.error("Save entry failed:", e);
-      setError(
-        msg.includes("network") || msg.includes("fetch")
-          ? "No internet connection. Please try again."
-          : "Could not save. Please try again.",
-      );
+      setError(saveErrorMessage(e));
     } finally {
       setSaving(false);
     }
   };
+
+  const onSaveAll = async () => {
+    if (saving) return;
+    setError(null);
+    const incomplete = rows.find((r) => bulkRowStatus(r) === "no-amount");
+    if (incomplete) {
+      setShowRowErrors(true);
+      Keyboard.dismiss();
+      scrollToRow(incomplete.id);
+      return;
+    }
+    const inputs = rows.flatMap((r, index) => {
+      if (bulkRowStatus(r) !== "valid") return [];
+      const at = new Date(when);
+      at.setMilliseconds(index);
+      return [
+        {
+          type,
+          amount: parseAmount(r.amount),
+          entry_date: toISODate(at),
+          category: r.category || OTHER_CATEGORY.name,
+          note: r.note.trim() ? r.note.trim() : null,
+          payment_method: paymentMethod,
+          created_at: at.toISOString(),
+        },
+      ];
+    });
+    if (inputs.length === 0) return;
+    setSaving(true);
+    try {
+      await createTransactions(bookId, inputs);
+      await touchBook(bookId).catch(() => {});
+      onSaved(inputs.length);
+    } catch (e: any) {
+      console.error("Save entries failed:", e);
+      setError(saveErrorMessage(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const errorBox = error ? (
+    <View style={[styles.errorBox, { backgroundColor: c.dangerSoft }]}>
+      <Ionicons name="alert-circle" size={18} color={c.danger} />
+      <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
+    </View>
+  ) : null;
+
+  const bulkFooter = (
+    <View style={styles.bulkFooter}>
+      {errorBox}
+      <Text style={[styles.bulkSummary, { color: c.textSecondary }]}>
+        {entriesLabel} · {formatCurrency(validTotal)}
+      </Text>
+      <Button
+        title={validCount > 0 ? `Save ${entriesLabel}` : "Save all"}
+        onPress={onSaveAll}
+        loading={saving}
+        disabled={validCount === 0}
+        variant={isCredit ? "primary" : "danger"}
+        style={{ backgroundColor: accent, height: 52, borderRadius: 6 }}
+      />
+    </View>
+  );
+
+  const renderCategoryGrid = (
+    selected: string,
+    onSelect: (name: string) => void,
+  ) => (
+    <View style={styles.catGrid}>
+      {categories.map((cat) => {
+        const active = selected === cat.name;
+        return (
+          <Pressable
+            key={cat.id ?? cat.name}
+            onPress={() => onSelect(cat.name)}
+            style={[
+              styles.catChip,
+              active
+                ? { backgroundColor: c.backgroundSelected, borderColor: c.primary }
+                : {
+                    backgroundColor: c.inputBackground,
+                    borderColor: c.border,
+                  },
+            ]}
+          >
+            {cat.id ? (
+              <>
+                <Pressable
+                  onPress={() => setCategorySheet({ open: true, editing: cat })}
+                  hitSlop={6}
+                  style={[styles.catBadge, styles.catBadgeRight]}
+                >
+                  <Ionicons name="pencil" size={11} color={c.textSecondary} />
+                </Pressable>
+                <Pressable
+                  onPress={() => confirmDeleteCategory(cat)}
+                  hitSlop={6}
+                  style={[styles.catBadge, styles.catBadgeLeft]}
+                >
+                  <Ionicons name="trash" size={11} color={c.danger} />
+                </Pressable>
+              </>
+            ) : null}
+            <Ionicons name={cat.icon} size={20} color={cat.color} />
+            <Text
+              style={[styles.catText, { color: active ? c.primary : c.text }]}
+              numberOfLines={1}
+            >
+              {cat.name}
+            </Text>
+          </Pressable>
+        );
+      })}
+
+      {selected && !categories.some((cat) => cat.name === selected) ? (
+        <Pressable
+          style={[
+            styles.catChip,
+            { backgroundColor: c.backgroundSelected, borderColor: c.primary },
+          ]}
+        >
+          <Ionicons name="pricetag" size={20} color={c.textSecondary} />
+          <Text style={[styles.catText, { color: c.primary }]} numberOfLines={1}>
+            {selected}
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
+  const addCategoryButton = (
+    <Pressable
+      onPress={() => setCategorySheet({ open: true, editing: null })}
+      style={({ pressed }) => [
+        styles.addCatButton,
+        { backgroundColor: c.backgroundSelected, borderColor: c.primary },
+        pressed && { opacity: 0.6 },
+      ]}
+    >
+      <Ionicons name="add-circle" size={18} color={c.primary} />
+      <Text style={[styles.addCatText, { color: c.primary }]}>Add category</Text>
+    </Pressable>
+  );
 
   const saveButton = (
     <Button
@@ -187,7 +430,8 @@ export function EntrySheet({
         visible={visible}
         onClose={onClose}
         title={editing ? "Edit Entry" : isCredit ? "Cash In" : "Cash Out"}
-        footer={saveButton}
+        footer={isMultiple ? bulkFooter : saveButton}
+        scrollRef={scrollRef}
       >
         {/* In / Out type toggle with animated sliding pill (Fix 1) */}
         <View
@@ -237,26 +481,48 @@ export function EntrySheet({
           </Pressable>
         </View>
 
-        {/* Amount — tapping anywhere in this row focuses the input  */}
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => amountRef.current?.focus()}
-          style={styles.amountTouch}
-        >
-          <View style={styles.amountRow}>
-            <Text style={[styles.rupee, { color: accent }]}>₹</Text>
-            <TextInput
-              ref={amountRef}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0"
-              placeholderTextColor={c.textSecondary}
-              keyboardType="numeric"
-              style={[styles.amountInput, { color: accent }]}
-              autoFocus
+        {!editing ? (
+          <View
+            style={[
+              styles.bulkSwitchRow,
+              { backgroundColor: c.surfaceMuted, borderColor: c.border },
+            ]}
+          >
+            <Text style={[styles.bulkSwitchText, { color: c.text }]}>
+              {isMultiple ? "Single entries" : "Bulk entries"}
+            </Text>
+            <Switch
+              value={isMultiple}
+              onValueChange={(on) => switchMode(on ? "multiple" : "single")}
+              trackColor={{ false: c.borderDashed, true: c.primary }}
+              thumbColor="#ffffff"
             />
           </View>
-        </TouchableOpacity>
+        ) : null}
+
+        {!isMultiple ? (
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => amountRef.current?.focus()}
+            style={styles.amountTouch}
+          >
+            <View style={styles.amountRow}>
+              <Text style={[styles.rupee, { color: accent }]}>₹</Text>
+              <TextInput
+                ref={amountRef}
+                value={amount}
+                onChangeText={setAmount}
+                onFocus={() => setAmountFocused(true)}
+                onBlur={() => setAmountFocused(false)}
+                placeholder={amountFocused ? "" : "0"}
+                placeholderTextColor={c.textSecondary}
+                keyboardType="numeric"
+                style={[styles.amountInput, { color: accent }]}
+                autoFocus
+              />
+            </View>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Date + Time row — each 50%*/}
         <View style={styles.row}>
@@ -273,19 +539,21 @@ export function EntrySheet({
               {shortDate(when)}
             </Text>
           </Pressable>
-          <Pressable
-            onPress={() => setShowTime(true)}
-            style={[
-              styles.field,
-              styles.half,
-              { backgroundColor: c.inputBackground, borderColor: c.border },
-            ]}
-          >
-            <Ionicons name="time" size={16} color={c.textSecondary} />
-            <Text style={[styles.fieldText, { color: c.text }]}>
-              {formatTime(when)}
-            </Text>
-          </Pressable>
+          {!isMultiple ? (
+            <Pressable
+              onPress={() => setShowTime(true)}
+              style={[
+                styles.field,
+                styles.half,
+                { backgroundColor: c.inputBackground, borderColor: c.border },
+              ]}
+            >
+              <Ionicons name="time" size={16} color={c.textSecondary} />
+              <Text style={[styles.fieldText, { color: c.text }]}>
+                {formatTime(when)}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
         {showDate && (
           <DateTimePicker
@@ -307,7 +575,7 @@ export function EntrySheet({
             }}
           />
         )}
-        {showTime && (
+        {showTime && !isMultiple && (
           <DateTimePicker
             value={when}
             mode="time"
@@ -366,129 +634,136 @@ export function EntrySheet({
           })}
         </View>
 
-        <Text style={[styles.label, { color: c.textSecondary }]}>Category</Text>
-        <View style={styles.catGrid}>
-          {categories.map((cat) => {
-            const active = category === cat.name;
-            return (
-              <Pressable
-                key={cat.id ?? cat.name}
-                onPress={() => setCategory(cat.name)}
-                style={[
-                  styles.catChip,
-                  active
-                    ? { backgroundColor: c.backgroundSelected, borderColor: c.primary }
-                    : {
-                        backgroundColor: c.inputBackground,
-                        borderColor: c.border,
-                      },
-                ]}
-              >
-                {cat.id ? (
-                  <>
-                    <Pressable
-                      onPress={() =>
-                        setCategorySheet({ open: true, editing: cat })
-                      }
-                      hitSlop={6}
-                      style={[styles.catBadge, styles.catBadgeRight]}
-                    >
-                      <Ionicons
-                        name="pencil"
-                        size={11}
-                        color={c.textSecondary}
-                      />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => confirmDeleteCategory(cat)}
-                      hitSlop={6}
-                      style={[styles.catBadge, styles.catBadgeLeft]}
-                    >
-                      <Ionicons name="trash" size={11} color={c.danger} />
-                    </Pressable>
-                  </>
-                ) : null}
-                <Ionicons name={cat.icon} size={20} color={cat.color} />
-                <Text
-                  style={[
-                    styles.catText,
-                    { color: active ? c.primary : c.text },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {cat.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-
-          {category && !categories.some((cat) => cat.name === category) ? (
+        {isMultiple ? (
+          <>
+            <Text style={[styles.label, { color: c.textSecondary }]}>Entries</Text>
+            <View
+              style={styles.bulkRows}
+              onLayout={(e) => {
+                rowsY.current = e.nativeEvent.layout.y;
+              }}
+            >
+              {rows.map((row) => (
+                <BulkEntryRow
+                  key={row.id}
+                  row={row}
+                  category={row.category ? categoryOf(row.category) : null}
+                  accent={accent}
+                  canRemove={rows.length > 1}
+                  showError={showRowErrors}
+                  focusOnMount={focusRowId === row.id}
+                  onChange={updateRow}
+                  onRemove={removeRow}
+                  onPickCategory={openCategoryPicker}
+                  onFocusRow={onRowFocus}
+                  onLayoutY={(id, y) => {
+                    rowYs.current.set(id, y);
+                  }}
+                />
+              ))}
+            </View>
             <Pressable
-              style={[
-                styles.catChip,
+              onPress={addRow}
+              disabled={atRowCap}
+              style={({ pressed }) => [
+                styles.addCatButton,
                 { backgroundColor: c.backgroundSelected, borderColor: c.primary },
+                (pressed || atRowCap) && { opacity: 0.5 },
               ]}
             >
-              <Ionicons name="pricetag" size={20} color={c.textSecondary} />
-              <Text
-                style={[styles.catText, { color: c.primary }]}
-                numberOfLines={1}
-              >
-                {category}
+              <Ionicons name="add-circle" size={18} color={c.primary} />
+              <Text style={[styles.addCatText, { color: c.primary }]}>
+                Add another
               </Text>
             </Pressable>
-          ) : null}
-        </View>
+            {atRowCap ? (
+              <Text style={[styles.capText, { color: c.textSecondary }]}>
+                Max {MAX_BULK_ROWS} entries at a time
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Text style={[styles.label, { color: c.textSecondary }]}>Category</Text>
+            {renderCategoryGrid(category, setCategory)}
+            {addCategoryButton}
 
-        <Pressable
-          onPress={() => setCategorySheet({ open: true, editing: null })}
-          style={({ pressed }) => [
-            styles.addCatButton,
-            { backgroundColor: c.backgroundSelected, borderColor: c.primary },
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <Ionicons name="add-circle" size={18} color={c.primary} />
-          <Text style={[styles.addCatText, { color: c.primary }]}>Add category</Text>
-        </Pressable>
+            <Text style={[styles.label, { color: c.textSecondary }]}>Note (optional)</Text>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              onFocus={() => setNoteFocused(true)}
+              onBlur={() => setNoteFocused(false)}
+              placeholder={noteFocused ? "" : "e.g. Airtel recharge"}
+              placeholderTextColor={c.textSecondary}
+              style={[
+                styles.noteInput,
+                {
+                  backgroundColor: c.inputBackground,
+                  borderColor: c.border,
+                  color: c.text,
+                },
+              ]}
+              multiline
+            />
 
-        {/* Note */}
-        <Text style={[styles.label, { color: c.textSecondary }]}>Note (optional)</Text>
-        <TextInput
-          value={note}
-          onChangeText={setNote}
-          placeholder="e.g. Airtel recharge"
-          placeholderTextColor={c.textSecondary}
-          style={[
-            styles.noteInput,
-            {
-              backgroundColor: c.inputBackground,
-              borderColor: c.border,
-              color: c.text,
-            },
-          ]}
-          multiline
-        />
+            {errorBox}
+          </>
+        )}
+      </BottomSheet>
 
-        {error ? (
-          <View style={[styles.errorBox, { backgroundColor: c.dangerSoft }]}>
-            <Ionicons name="alert-circle" size={18} color={c.danger} />
-            <Text style={[styles.errorText, { color: c.danger }]}>{error}</Text>
-          </View>
-        ) : null}
+      <BottomSheet
+        visible={visible && pickerRow !== null}
+        onClose={() => setPickerRowId(null)}
+        title="Pick a category"
+      >
+        {renderCategoryGrid(pickerRow?.category ?? "", (name) => {
+          if (pickerRow) updateRow(pickerRow.id, { category: name });
+          setPickerRowId(null);
+        })}
+        {addCategoryButton}
       </BottomSheet>
 
       <CategorySheet
         visible={categorySheet.open}
         editing={categorySheet.editing}
         onClose={() => setCategorySheet({ open: false, editing: null })}
-        onSaved={(saved) => setCategory(saved.name)}
+        onSaved={(saved) => {
+          if (!isMultiple) {
+            setCategory(saved.name);
+            return;
+          }
+          const previous = categorySheet.editing?.name;
+          setRows((prev) =>
+            prev.map((r) =>
+              r.id === pickerRowId || (previous && r.category === previous)
+                ? { ...r, category: saved.name }
+                : r,
+            ),
+          );
+          setPickerRowId(null);
+        }}
       />
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  bulkSwitchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    height: 48,
+    marginVertical: 10,
+  },
+  bulkSwitchText: { fontSize: 14, fontFamily: "Manrope_600SemiBold", fontWeight: "600" },
+  bulkRows: { gap: 8 },
+  capText: { fontFamily: "Manrope_500Medium", fontSize: 12, marginBottom: 4 },
+  bulkFooter: { gap: 8 },
+  bulkSummary: { fontSize: 13, fontFamily: "Manrope_700Bold", fontWeight: "700" },
   toggle: {
     flexDirection: "row",
     borderWidth: 1,

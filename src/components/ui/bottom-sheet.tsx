@@ -23,6 +23,7 @@ type Props = {
   footer?: React.ReactNode;
   /** Wrap content in a ScrollView (for tall forms). Default true. */
   scroll?: boolean;
+  scrollRef?: React.RefObject<ScrollView | null>;
 };
 
 export function BottomSheet({
@@ -32,6 +33,7 @@ export function BottomSheet({
   children,
   footer,
   scroll = true,
+  scrollRef,
 }: Props) {
   const { scheme } = useThemeMode();
   const insets = useSafeAreaInsets();
@@ -94,6 +96,7 @@ export function BottomSheet({
           ) : null}
           {scroll ? (
             <ScrollView
+              ref={scrollRef}
               style={styles.scroll}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={[

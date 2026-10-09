@@ -83,6 +83,20 @@ export async function createTransaction(input: TransactionInput): Promise<Transa
   return data as Transaction;
 }
 
+/** Insert several entries for one book in a single all-or-nothing call. */
+export async function createTransactions(
+  bookId: string,
+  rows: Omit<TransactionInput, 'book_id'>[]
+): Promise<Transaction[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .insert(rows.map((row) => ({ ...row, book_id: bookId })))
+    .select();
+  if (error) throw error;
+  invalidateTxCache();
+  return (data ?? []) as Transaction[];
+}
+
 export async function updateTransaction(
   id: string,
   input: TransactionInput
