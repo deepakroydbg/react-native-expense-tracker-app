@@ -78,6 +78,7 @@ export function EntrySheet({
   const scrollRef = useRef<ScrollView>(null);
   const rowsY = useRef(0);
   const rowYs = useRef(new Map<number, number>());
+  const savingAll = useRef(false);
 
   const [type, setType] = useState<TxType>(initialType);
   const [amount, setAmount] = useState("");
@@ -130,6 +131,9 @@ export function EntrySheet({
     setShowRowErrors(false);
     setFocusRowId(null);
     setPickerRowId(null);
+    setAmountFocused(false);
+    setNoteFocused(false);
+    savingAll.current = false;
     if (editing) {
       setType(editing.type);
       setAmount(String(editing.amount));
@@ -157,6 +161,7 @@ export function EntrySheet({
   const validCount = validRows.length;
   const validTotal = validRows.reduce((sum, r) => sum + parseAmount(r.amount), 0);
   const entriesLabel = `${validCount} ${validCount === 1 ? "entry" : "entries"}`;
+  const hasFilledRow = rows.some((r) => bulkRowStatus(r) !== "empty");
   const atRowCap = rows.length >= MAX_BULK_ROWS;
   const pickerRow = rows.find((r) => r.id === pickerRowId) ?? null;
 
@@ -269,7 +274,7 @@ export function EntrySheet({
   };
 
   const onSaveAll = async () => {
-    if (saving) return;
+    if (savingAll.current) return;
     setError(null);
     const incomplete = rows.find((r) => bulkRowStatus(r) === "no-amount");
     if (incomplete) {
@@ -295,6 +300,7 @@ export function EntrySheet({
       ];
     });
     if (inputs.length === 0) return;
+    savingAll.current = true;
     setSaving(true);
     try {
       await createTransactions(bookId, inputs);
@@ -304,6 +310,7 @@ export function EntrySheet({
       console.error("Save entries failed:", e);
       setError(saveErrorMessage(e));
     } finally {
+      savingAll.current = false;
       setSaving(false);
     }
   };
@@ -325,7 +332,7 @@ export function EntrySheet({
         title={validCount > 0 ? `Save ${entriesLabel}` : "Save all"}
         onPress={onSaveAll}
         loading={saving}
-        disabled={validCount === 0}
+        disabled={!hasFilledRow}
         variant={isCredit ? "primary" : "danger"}
         style={{ backgroundColor: accent, height: 52, borderRadius: 6 }}
       />
@@ -729,19 +736,17 @@ export function EntrySheet({
         editing={categorySheet.editing}
         onClose={() => setCategorySheet({ open: false, editing: null })}
         onSaved={(saved) => {
-          if (!isMultiple) {
-            setCategory(saved.name);
-            return;
-          }
           const previous = categorySheet.editing?.name;
+          const pickedRowId = isMultiple ? pickerRowId : null;
           setRows((prev) =>
             prev.map((r) =>
-              r.id === pickerRowId || (previous && r.category === previous)
+              r.id === pickedRowId || (previous && r.category === previous)
                 ? { ...r, category: saved.name }
                 : r,
             ),
           );
-          setPickerRowId(null);
+          if (isMultiple) setPickerRowId(null);
+          else setCategory(saved.name);
         }}
       />
     </>

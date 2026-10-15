@@ -3,7 +3,7 @@
     "name": "MyKhata Book",
     "slug": "expense-tracker",
     "owner": "deepakroydbg",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "mykhata",
@@ -40,7 +40,7 @@
           ]
         }
       ],
-      "versionCode": 11
+      "versionCode": 12
     },
     "web": {
       "output": "static",
@@ -89,6 +89,15 @@
           "photosPermission": "MyKhata Book saves your summary card to your photos.",
           "savePhotosPermission": "MyKhata Book saves your summary card to your photos.",
           "granularPermissions": []
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],
